@@ -1,3 +1,4 @@
+import { useLanguage } from '../contexts/LanguageContext';
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Trophy, Star, MapPin, Crown, TrendingUp, Users, Flame, Snowflake } from "lucide-react";
@@ -117,6 +118,7 @@ function MobilizerCard({ mobilizer, currentMemberId, isAdmin, onToggleStatus }) 
 }
 
 export default function Leaderboard({ memberId, isAdmin }) {
+  const { t } = useLanguage();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("mobilizers");
@@ -167,8 +169,8 @@ export default function Leaderboard({ memberId, isAdmin }) {
               <Trophy className="text-dcp-green w-8 h-8" />
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-400 mb-1">DCP Ol Kalou · By-Election</p>
-              <h1 className="text-3xl font-black text-white italic uppercase">Recruiter Leaderboard</h1>
+              <p className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-400 mb-1">DCP Laikipia · Campaign</p>
+              <h1 className="text-3xl font-black text-white italic uppercase">{t('lb_title')}</h1>
               <p className="text-slate-400 text-sm mt-1">Top mobilizers powering the movement across all 5 wards</p>
             </div>
           </div>

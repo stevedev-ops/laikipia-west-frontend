@@ -1,3 +1,4 @@
+import Diary from './Diary';
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Users, CheckCircle, Lock, Star, AlertCircle, QrCode, Copy, Share2, Download, WifiOff, CloudUpload, Crosshair } from "lucide-react";
@@ -235,13 +236,13 @@ export default function Dashboard({ memberId, onLogout }) {
     }
   };
 
-  const isRoot = member?.referred_by === null;
+  const isRoot = member?.referred_by === null && (!member?.source || member?.source === 'field_mobilizer');
   const quota = isRoot ? 10 : 5;
   const remaining = Math.max(0, quota - referralCount);
   const pct = Math.min(100, Math.round((referralCount / quota) * 100));
 
   // Referral share link
-  const referralLink = member ? `${window.location.origin}/?ref=${member.id}` : '';
+  const referralLink = member ? `${window.location.origin}/?ref=${member.uuid || member.referral_code || member.id}` : '';
 
   const copyLink = () => {
     navigator.clipboard.writeText(referralLink);
@@ -251,8 +252,8 @@ export default function Dashboard({ memberId, onLogout }) {
   const shareLink = () => {
     if (navigator.share) {
       navigator.share({
-        title: 'Join DCP Ol Kalou',
-        text: `${member?.full_name} is inviting you to join the DCP Ol Kalou network. Register here:`,
+        title: 'Join DCP Laikipia',
+        text: `${member?.full_name} is inviting you to join the DCP Laikipia network. Register here:`,
         url: referralLink,
       });
     } else {
@@ -313,7 +314,7 @@ export default function Dashboard({ memberId, onLogout }) {
         <div className="w-16 h-16 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center">
           <AlertCircle size={28} className="text-red-400" />
         </div>
-        <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight">Failed to Load Dashboard</h2>
+        <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight">{t('failed_load_dashboard')}</h2>
         <p className="text-sm text-slate-500 max-w-xs">Could not connect to the server. Check your connection and try again.</p>
         <button
           onClick={() => { setError(false); setLoading(true); fetchMemberData(); }}
@@ -338,8 +339,8 @@ export default function Dashboard({ memberId, onLogout }) {
                   <Crosshair className="w-6 h-6" />
                </div>
                <div>
-                  <p className="text-[10px] uppercase tracking-[0.35em] text-indigo-400 font-black">AI Recommendations</p>
-                  <h2 className="text-xl font-black text-white">Suggested Targets</h2>
+                  <p className="text-[10px] uppercase tracking-[0.35em] text-indigo-400 font-black">{t('ai_recommendations')}</p>
+                  <h2 className="text-xl font-black text-white">{t('suggested_targets')}</h2>
                   <p className="text-xs text-slate-400 mt-0.5">High probability family members at your polling station</p>
                </div>
              </div>
@@ -735,7 +736,7 @@ export default function Dashboard({ memberId, onLogout }) {
               <Star size={20} className="text-dcp-green" />
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Your Recruitment Goal</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{t('recruitment_goal')}</p>
               <h4 className="font-black text-slate-900 mb-1">Recruit {quota} members to unlock rewards</h4>
               <p className="text-xs text-slate-500">
                 You have <span className="font-black text-slate-900">{referralCount}</span> of <span className="font-black text-slate-900">{quota}</span> recruits.
@@ -759,9 +760,9 @@ export default function Dashboard({ memberId, onLogout }) {
               <div className="flex items-center gap-3">
                 <Star className="text-dcp-green w-5 h-5" />
                 <div>
-                  <h3 className="text-white font-black uppercase tracking-widest text-sm">Recruitment Tiers</h3>
+                  <h3 className="text-white font-black uppercase tracking-widest text-sm">{t('recruitment_tiers')}</h3>
                   <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">
-                    Fill each bunch of 5 to unlock the next tier
+                    {t('fill_bunch')}
                   </p>
                 </div>
               </div>
@@ -789,7 +790,7 @@ export default function Dashboard({ memberId, onLogout }) {
 
             <div className="mt-6 pt-6 border-t border-slate-800">
               <div className="flex justify-between text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">
-                <span>Overall Progress</span>
+                <span>{t('overall_progress')}</span>
                 <span>{referralCount} / 10</span>
               </div>
               <div className="relative h-3 bg-slate-800 rounded-full overflow-hidden">

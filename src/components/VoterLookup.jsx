@@ -79,7 +79,7 @@ export default function VoterLookup({ onSelect, onSkip }) {
           </div>
           <div>
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-              IEBC 2022 Voter Register · Ol Kalou Constituency
+              IEBC 2022 Voter Register · Laikipia
             </p>
             <h3 className="text-white font-black text-sm uppercase tracking-widest">
               Pre-Verify Supporter
@@ -102,9 +102,20 @@ export default function VoterLookup({ onSelect, onSkip }) {
           />
         </div>
 
-        <p className="mt-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-          💡 Tip: Type at least 3 characters. Search by Official Name.
-        </p>
+        <div className="flex items-center justify-between mt-3 flex-wrap gap-2">
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+            💡 Tip: Search by Official Name, or skip verification.
+          </p>
+          {onSkip && (
+            <button
+              type="button"
+              onClick={onSkip}
+              className="text-[10px] font-black text-dcp-green hover:underline uppercase tracking-widest flex items-center gap-1"
+            >
+              Skip Lookup & Register Directly <ArrowRight size={12} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Error */}
@@ -171,13 +182,22 @@ export default function VoterLookup({ onSelect, onSkip }) {
 
           {/* Not in register notice */}
           {results.length === 0 && (
-            <div className="bg-red-50 border border-red-100 rounded-2xl p-5 space-y-2">
-              <p className="text-sm font-black text-red-800 uppercase tracking-tight">
-                ⚠️ Not found in 2022 Register
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 space-y-3">
+              <p className="text-sm font-black text-amber-900 uppercase tracking-tight flex items-center gap-2">
+                ℹ️ Not found in 2022 Register
               </p>
-              <p className="text-xs text-red-700 leading-relaxed font-medium">
-                To maintain the integrity of the Democracy for Citizens Party (DCP), all members MUST be verified voters in Ol Kalou. If their name is spelled differently, try searching again. They cannot be enrolled if they are not in the register.
+              <p className="text-xs text-amber-800 leading-relaxed font-medium">
+                Voter register verification is optional. Members can still register directly into the Laikipia network without being in the voter register.
               </p>
+              {onSkip && (
+                <button
+                  type="button"
+                  onClick={onSkip}
+                  className="w-full py-3.5 bg-dcp-green hover:bg-dcp-green-dark text-white font-black rounded-xl text-xs uppercase tracking-widest shadow-md transition-all flex items-center justify-center gap-2"
+                >
+                  Continue Registration Directly <ArrowRight className="w-4 h-4" />
+                </button>
+              )}
             </div>
           )}
         </div>

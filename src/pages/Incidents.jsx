@@ -1,3 +1,4 @@
+import { useLanguage } from '../contexts/LanguageContext';
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, MapPin, Camera, Clock, CheckCircle2, Search, Plus, ShieldCheck } from "lucide-react";
@@ -14,6 +15,7 @@ const TYPE_CONFIG = {
 };
 
 export default function Incidents({ isAdmin = false }) {
+  const { t } = useLanguage();
   const { wardsWithCenters } = useLocationData();
   const [incidents, setIncidents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -78,7 +80,7 @@ export default function Incidents({ isAdmin = false }) {
           <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.35em] text-red-400 mb-1">Ushahidi-Style Reporting</p>
-              <h1 className="text-3xl font-black text-white italic uppercase">Incident Command</h1>
+              <h1 className="text-3xl font-black text-white italic uppercase">{t('inc_title')}</h1>
               <p className="text-slate-400 text-sm mt-1">Live feed of election day irregularities and security threats.</p>
             </div>
             <button onClick={() => setShowReport(v => !v)}
@@ -95,11 +97,11 @@ export default function Incidents({ isAdmin = false }) {
               className="bg-white border border-red-200 rounded-3xl p-6 shadow-md space-y-5">
               <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
                 <AlertTriangle className="w-4 h-4 text-red-500" />
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">File New Report</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t('inc_file_btn')}</p>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Incident Type</label>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">{t('inc_type')}</label>
                   <select value={form.incident_type} onChange={e => setForm(f => ({ ...f, incident_type: e.target.value }))}
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:border-red-400 transition appearance-none">
                     {Object.entries(TYPE_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.icon} {v.label}</option>)}
@@ -122,18 +124,18 @@ export default function Incidents({ isAdmin = false }) {
                   </select>
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Detailed Description</label>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">{t('inc_desc')}</label>
                   <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3}
                     placeholder="Describe exactly what happened..."
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:border-red-400 transition resize-none" />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Attach Photo</label>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">{t('inc_attach_photo')}</label>
                   <input type="file" accept="image/*" onChange={e => setForm(f => ({ ...f, image: e.target.files[0] }))}
                     className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:border-red-400 transition file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-red-50 file:text-red-600 hover:file:bg-red-100" />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Attach Video</label>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">{t('inc_attach_video')}</label>
                   <input type="file" accept="video/*" onChange={e => setForm(f => ({ ...f, video: e.target.files[0] }))}
                     className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:border-red-400 transition file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-slate-200 file:text-slate-700 hover:file:bg-slate-300" />
                 </div>
@@ -159,7 +161,7 @@ export default function Incidents({ isAdmin = false }) {
           ) : incidents.length === 0 ? (
             <div className="bg-white border border-slate-200 rounded-3xl p-16 text-center">
               <ShieldCheck className="w-12 h-12 text-slate-200 mx-auto mb-4" />
-              <p className="font-black text-slate-500 uppercase tracking-tight text-lg">No Incidents Reported</p>
+              <p className="font-black text-slate-500 uppercase tracking-tight text-lg">{t('inc_no_incidents')}</p>
               <p className="text-slate-400 text-sm mt-2">All polling stations operating normally.</p>
             </div>
           ) : incidents.map(i => {

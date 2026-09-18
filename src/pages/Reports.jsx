@@ -1,3 +1,4 @@
+import { useLanguage } from '../contexts/LanguageContext';
 import { useState, useEffect, useCallback } from "react";
 import { BarChart3, Users, MapPin, ShieldCheck, Search, ChevronLeft, ChevronRight, AlertTriangle, Target } from "lucide-react";
 import { api } from "../lib/api";
@@ -39,6 +40,7 @@ function Pagination({ page, totalPages, onPrev, onNext, totalItems, pageSize }) 
 }
 
 export default function Reports({ memberId }) {
+  const { t } = useLanguage();
   const [reportMode, setReportMode] = useState('all'); // all | verified | unverified
   const [totalMembers, setTotalMembers] = useState(0);
   const [wardSummary, setWardSummary] = useState([]);
@@ -144,14 +146,14 @@ export default function Reports({ memberId }) {
               <p className="text-[10px] font-black uppercase tracking-[0.32em] text-slate-400 mb-2">
                 Recruitment Analytics
               </p>
-              <h1 className="text-3xl font-black text-slate-900">My Network Insights</h1>
+              <h1 className="text-3xl font-black text-slate-900">{t('rep_title')}</h1>
               <p className="text-sm text-slate-500 mt-2 max-w-2xl">
                 Official tracking of members manually recruited via your referral link.
               </p>
             </div>
             <div className="inline-flex items-center gap-3 rounded-3xl bg-slate-50 border border-slate-200 px-5 py-4">
               <ShieldCheck className="text-dcp-green w-6 h-6" />
-              <span className="text-sm font-bold uppercase tracking-[0.28em] text-slate-700">Official Report</span>
+              <span className="text-sm font-bold uppercase tracking-[0.28em] text-slate-700">{t('rep_official')}</span>
             </div>
           </div>
         </div>
@@ -182,7 +184,7 @@ export default function Reports({ memberId }) {
 
         <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
-            <p className="text-[10px] uppercase tracking-[0.35em] text-slate-400 mb-3">Total Registrations</p>
+            <p className="text-[10px] uppercase tracking-[0.35em] text-slate-400 mb-3">{t('rep_total_reg')}</p>
             <p className="text-4xl font-black text-slate-900">{totalMembers}</p>
           </div>
           <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
@@ -200,7 +202,7 @@ export default function Reports({ memberId }) {
           <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
             <div className="flex items-center justify-between gap-4 mb-6">
               <div>
-                <p className="text-[10px] uppercase tracking-[0.35em] text-slate-400">Most Active Wards</p>
+                <p className="text-[10px] uppercase tracking-[0.35em] text-slate-400">{t('rep_active_wards')}</p>
                 <h2 className="text-xl font-black text-slate-900">
                   {reportMode === 'verified' ? 'IEBC Official Ward Breakdown' : reportMode === 'unverified' ? 'Unverified Members by Ward' : 'All Registrants by Ward'}
                 </h2>
@@ -247,8 +249,8 @@ export default function Reports({ memberId }) {
                 <Users className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-[10px] uppercase tracking-[0.35em] text-slate-400">Quick Breakdown</p>
-                <h2 className="text-xl font-black text-slate-900">Member Distribution</h2>
+                <p className="text-[10px] uppercase tracking-[0.35em] text-slate-400">{t('rep_quick_breakdown')}</p>
+                <h2 className="text-xl font-black text-slate-900">{t('rep_member_dist')}</h2>
               </div>
             </div>
             <div className="space-y-4">
@@ -261,7 +263,7 @@ export default function Reports({ memberId }) {
                 <span>{delegateCount}</span>
               </div>
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-sm font-black text-dcp-green uppercase tracking-[0.28em]">
-                <span>Total Network</span>
+                <span>{t('rep_total_network')}</span>
                 <span>{rootCount + delegateCount}</span>
               </div>
             </div>
@@ -279,7 +281,7 @@ export default function Reports({ memberId }) {
                   <Users className="w-6 h-6" />
                </div>
                <div>
-                  <p className="text-[10px] uppercase tracking-[0.35em] text-indigo-400 font-black">AI Demographics</p>
+                  <p className="text-[10px] uppercase tracking-[0.35em] text-indigo-400 font-black">{t('rep_ai_demographics')}</p>
                   <h2 className="text-xl font-black text-slate-900">Member Analytics</h2>
                </div>
              </div>
@@ -377,7 +379,7 @@ export default function Reports({ memberId }) {
                   <Target className="w-5 h-5" />
                </div>
                <div>
-                  <p className="text-[10px] uppercase tracking-[0.35em] text-slate-400">GOTV Prediction</p>
+                  <p className="text-[10px] uppercase tracking-[0.35em] text-slate-400">{t('rep_gotv_prediction')}</p>
                   <h2 className="text-sm font-black text-slate-900">Top Secured Stations</h2>
                </div>
              </div>
@@ -402,12 +404,12 @@ export default function Reports({ memberId }) {
                   <Target className="w-5 h-5" />
                </div>
                <div>
-                  <p className="text-[10px] uppercase tracking-[0.35em] text-slate-400">GOTV Prediction</p>
-                  <h2 className="text-sm font-black text-slate-900">At-Risk Stations</h2>
+                  <p className="text-[10px] uppercase tracking-[0.35em] text-slate-400">{t('rep_gotv_prediction')}</p>
+                  <h2 className="text-sm font-black text-slate-900">{t('rep_at_risk')}</h2>
                </div>
              </div>
              <div className="space-y-3">
-                {saturation.at_risk.length === 0 ? <p className="text-xs text-slate-400 font-bold uppercase">No at-risk stations</p> : saturation.at_risk.map((s, idx) => (
+                {saturation.at_risk.length === 0 ? <p className="text-xs text-slate-400 font-bold uppercase">{t('rep_no_at_risk')}</p> : saturation.at_risk.map((s, idx) => (
                    <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
                       <div>
                          <p className="text-xs font-black text-slate-900 truncate max-w-[200px]">{s.polling_station}</p>
@@ -427,15 +429,15 @@ export default function Reports({ memberId }) {
           <div className="flex items-center gap-4 mb-6">
             <MapPin className="w-6 h-6 text-slate-600" />
             <div>
-              <p className="text-[10px] uppercase tracking-[0.35em] text-slate-400">Ward Summary</p>
+              <p className="text-[10px] uppercase tracking-[0.35em] text-slate-400">{t('rep_ward_summary')}</p>
               <h2 className="text-lg font-black text-slate-900">All Wards</h2>
             </div>
           </div>
           <div className="grid gap-3">
             {loading ? (
-              <p className="text-sm text-slate-500">Loading ward list…</p>
+              <p className="text-sm text-slate-500">{t('rep_loading_wards')}</p>
             ) : wardSummary.length === 0 ? (
-              <p className="text-sm text-slate-500">No wards found.</p>
+              <p className="text-sm text-slate-500">{t('rep_no_wards')}</p>
             ) : (
               <>
                 {wardListSlice.map((item, idx) => {
@@ -469,14 +471,14 @@ export default function Reports({ memberId }) {
           </div>
         </section>
 
-        {/* All Polling Stations — paginated + searchable */}
+        {/* {t('rep_all_stations')} — paginated + searchable */}
         <section className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-4">
               <MapPin className="w-6 h-6 text-slate-600" />
               <div>
-                <p className="text-[10px] uppercase tracking-[0.35em] text-slate-400">Polling Station Breakdown</p>
-                <h2 className="text-lg font-black text-slate-900">All Polling Stations</h2>
+                <p className="text-[10px] uppercase tracking-[0.35em] text-slate-400">{t('rep_station_breakdown')}</p>
+                <h2 className="text-lg font-black text-slate-900">{t('rep_all_stations')}</h2>
               </div>
             </div>
             <div className="relative w-full sm:w-64">
@@ -492,9 +494,9 @@ export default function Reports({ memberId }) {
           </div>
           <div className="grid gap-3">
             {loading ? (
-              <p className="text-sm text-slate-500">Loading polling stations…</p>
+              <p className="text-sm text-slate-500">{t('rep_loading_stations')}</p>
             ) : pollingSummary.length === 0 ? (
-              <p className="text-sm text-slate-500">No polling station data found.</p>
+              <p className="text-sm text-slate-500">{t('rep_no_stations')}</p>
             ) : filteredPolling.length === 0 ? (
               <p className="text-sm text-slate-500 font-bold uppercase tracking-widest text-center py-6">No match for "{pollingSearch}"</p>
             ) : (

@@ -1,3 +1,4 @@
+import { useLanguage } from '../contexts/LanguageContext';
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Map, Plus, Trash2, CheckCircle2, Circle, Search, MapPin, User, Loader2 } from "lucide-react";
@@ -6,6 +7,7 @@ import { api } from "../lib/api";
 import { useLocationData } from "../contexts/LocationContext";
 
 export default function Canvass({ memberId, isAdmin = false }) {
+  const { t } = useLanguage();
   const { wardsWithCenters } = useLocationData();
   const [assignments, setAssignments] = useState([]);
   const [members, setMembers] = useState([]);
@@ -80,7 +82,7 @@ export default function Canvass({ memberId, isAdmin = false }) {
           <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-400 mb-1">BJP-Style · Panna Pramukh System</p>
-              <h1 className="text-3xl font-black text-white italic uppercase">Area Assignments</h1>
+              <h1 className="text-3xl font-black text-white italic uppercase">{t('canvass_title')}</h1>
               <p className="text-slate-400 text-sm mt-1">Assign mobilizers to specific shambas, polling stations & villages</p>
             </div>
             <div className="flex items-center gap-3">
@@ -101,10 +103,10 @@ export default function Canvass({ memberId, isAdmin = false }) {
           {showForm && (
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
               className="bg-white border border-dcp-green/20 rounded-3xl p-6 shadow-md space-y-5">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 pb-3">New Canvass Assignment</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 pb-3">{t('canvass_new_btn')}</p>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Mobilizer Member ID</label>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">{t('canvass_mobilizer_id')}</label>
                   <input value={form.mobilizer_id} onChange={e => setForm(f => ({ ...f, mobilizer_id: e.target.value }))}
                     placeholder="Paste member ID number"
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:border-dcp-green/50 transition" />
@@ -122,13 +124,13 @@ export default function Canvass({ memberId, isAdmin = false }) {
                   <select value={form.polling_station} onChange={e => setForm(f => ({ ...f, polling_station: e.target.value }))}
                     disabled={!form.ward}
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:border-dcp-green/50 transition appearance-none disabled:opacity-50">
-                    <option value="">Whole Ward</option>
+                    <option value="">{t('canvass_whole_ward')}</option>
                     {availableStations.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Target Households</label>
-                  <input type="number" value={form.target_households} onChange={e => setForm(f => ({ ...f, target_households: +e.target.value }))}
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">{t('canvass_target_hh')}</label>
+                  <input type="number" value={form.target_households} inputMode="numeric" onChange={e => setForm(f => ({ ...f, target_households: +e.target.value }))}
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:border-dcp-green/50 transition" />
                 </div>
                 <div className="sm:col-span-2">
@@ -169,7 +171,7 @@ export default function Canvass({ memberId, isAdmin = false }) {
           ) : filtered.length === 0 ? (
             <div className="bg-white border border-slate-200 rounded-3xl p-16 text-center">
               <Map className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-              <p className="font-black text-slate-500 uppercase tracking-tight">No assignments yet</p>
+              <p className="font-black text-slate-500 uppercase tracking-tight">{t('canvass_no_assignments')}</p>
               <p className="text-slate-400 text-xs mt-1">Click "Assign" above to send a mobilizer to the field</p>
             </div>
           ) : filtered.map(a => (

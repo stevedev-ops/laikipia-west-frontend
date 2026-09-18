@@ -200,19 +200,19 @@ export default function Members({ memberId, isAdmin = false }) {
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.32em] text-slate-400 mb-2">
-                My Network Impact
+                {t('mem_impact')}
               </p>
               <h1 className="text-3xl font-black text-slate-900 leading-tight italic">
-                Registration Statistics
+                {t('mem_stats_title')}
               </h1>
               <p className="text-sm text-slate-500 mt-2 max-w-2xl">
                 {isAdmin
                   ? "Full intelligence directory of all registered members."
-                  : "Numerical breakdown of your recruitment impact across the constituency."}
+                  : t('mem_stats_sub')}
               </p>
             </div>
             {isAdmin && (
-              <div className="min-w-[280px] w-full md:w-auto">
+              <div className="w-full w-full md:w-auto">
                 <div className="relative">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
                   <input
@@ -231,7 +231,7 @@ export default function Members({ memberId, isAdmin = false }) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
               <p className="text-[10px] uppercase tracking-[0.35em] text-slate-400 mb-3">
-                Total Registered
+                {t('mem_total_registered')}
               </p>
               <p className="text-4xl font-black text-slate-900">
                 {members.length}
@@ -239,7 +239,7 @@ export default function Members({ memberId, isAdmin = false }) {
             </div>
             <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
               <p className="text-[10px] uppercase tracking-[0.35em] text-slate-400 mb-3">
-                Wards Covered
+                {t('mem_wards_covered')}
               </p>
               <p className="text-4xl font-black text-slate-900">
                 {sortedWards.length}
@@ -252,7 +252,7 @@ export default function Members({ memberId, isAdmin = false }) {
               <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
                 <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between">
                   <h3 className="font-black text-slate-900 uppercase tracking-widest text-sm">
-                    Geographic Yield
+                    {t('mem_geo_yield')}
                   </h3>
                   <MapPin size={18} className="text-slate-400" />
                 </div>
@@ -282,7 +282,7 @@ export default function Members({ memberId, isAdmin = false }) {
                   ))}
                   {sortedWards.length === 0 && (
                     <div className="p-12 text-center text-slate-400 font-bold uppercase tracking-widest text-xs">
-                      No registrations to analyze yet.
+                      {t('mem_no_regs')}
                     </div>
                   )}
                 </div>
@@ -291,7 +291,7 @@ export default function Members({ memberId, isAdmin = false }) {
           )}
           <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
-            <div className="grid grid-cols-4 gap-0 text-[10px] uppercase tracking-[0.35em] text-slate-500 bg-slate-50 border-b border-slate-200 px-6 py-4 font-black min-w-[480px]">
+            <div className="grid grid-cols-4 gap-0 text-[10px] uppercase tracking-[0.35em] text-slate-500 bg-slate-50 border-b border-slate-200 px-6 py-4 font-black w-full">
               <div className="col-span-2">{t('mem_name')}</div>
               <div>Contact</div>
               <div className="hidden md:block text-right">{t('mem_location')}</div>
@@ -312,7 +312,7 @@ export default function Members({ memberId, isAdmin = false }) {
                 filtered.map((member) => (
                   <div
                     key={member.id}
-                    className="grid grid-cols-4 gap-0 items-center px-6 py-6 hover:bg-slate-50 transition-colors cursor-pointer group min-w-[480px]"
+                    className="grid grid-cols-4 gap-0 items-center px-6 py-6 hover:bg-slate-50 transition-colors cursor-pointer group w-full"
                     onClick={() => setSelectedMember(member)}
                   >
                     <div className="col-span-2 space-y-1 min-w-0">

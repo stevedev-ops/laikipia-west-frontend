@@ -9,8 +9,10 @@
     --dcp-black: #000000;
   }
 
-  body {
+  html, body {
     @apply bg-slate-50 text-slate-900 font-outfit antialiased selection:bg-dcp-green/30;
+    overflow-x: hidden;
+    max-width: 100vw;
   }
 
   input, select, textarea {

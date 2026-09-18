@@ -38,6 +38,8 @@ export default function LoginForm({ onLogin }) {
       
       if (user.is_admin) {
         navigate("/admin", { replace: true });
+      } else if (user.is_agent) {
+        navigate("/agent-dashboard", { replace: true });
       } else if (user.security_rank && user.security_rank !== 'none') {
         navigate("/security", { replace: true });
       } else {
@@ -53,20 +55,20 @@ export default function LoginForm({ onLogin }) {
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1, duration: 0.5 }}
-      className="max-w-xl mx-auto -mt-16 relative z-30"
+      className="max-w-xl mx-auto -mt-4 sm:-mt-10 relative z-30 px-2 sm:px-4"
     >
-      <div className="card-official p-8 md:p-10 border-t-8 border-t-dcp-green shadow-xl">
-        <header className="flex flex-col items-center mb-10 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center text-dcp-green mb-4">
+      <div className="card-official p-4 sm:p-8 border-t-4 sm:border-t-8 border-t-dcp-green shadow-xl rounded-2xl sm:rounded-3xl">
+        <header className="flex flex-col items-center mb-4 sm:mb-8 text-center">
+          <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center text-dcp-green mb-2 sm:mb-4">
             <ShieldCheck size={32} />
           </div>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight mb-2">Member Login</h2>
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mb-1">Member Login</h2>
           <p className="text-slate-500 font-medium text-sm">Access your DCP Command Center dashboard.</p>
         </header>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <section className="space-y-4 pt-4">
-            <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest border-b border-slate-100 pb-2 mb-6">User Identity Verification</h3>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 sm:space-y-5">
+          <section className="space-y-3 pt-1 sm:pt-3">
+            <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-1.5 mb-3">User Identity Verification</h3>
 
             <div className="space-y-4">
               <div className="relative">
@@ -87,7 +89,7 @@ export default function LoginForm({ onLogin }) {
                   placeholder="National ID Number"
                   type="password"
                   autoComplete="current-password"
-                />
+                inputMode="numeric" />
                 {errors.nationalId && <p className="text-red-500 text-[10px] mt-1.5 ml-1 font-bold">{errors.nationalId.message}</p>}
               </div>
             </div>

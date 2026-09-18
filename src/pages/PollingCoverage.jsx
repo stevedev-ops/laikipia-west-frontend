@@ -1,3 +1,4 @@
+import { useLanguage } from '../contexts/LanguageContext';
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { MapPin, Search, ShieldCheck, AlertTriangle, Users, BarChart3, CheckCircle } from "lucide-react";
@@ -24,6 +25,7 @@ function StatusBadge({ count }) {
 }
 
 export default function PollingCoverage() {
+  const { t } = useLanguage();
   const { wardsWithCenters } = useLocationData();
   
   const ALL_STATIONS = useMemo(() => {
@@ -85,9 +87,9 @@ export default function PollingCoverage() {
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.32em] text-slate-400 mb-1">
-                HQ Intelligence · Ol Kalou Constituency
+                HQ Intelligence · Laikipia
               </p>
-              <h1 className="text-3xl font-black text-slate-900 italic">Polling Station Coverage</h1>
+              <h1 className="text-3xl font-black text-slate-900 italic">{t('pc_title')}</h1>
               <p className="text-sm text-slate-500 mt-1">142 stations across 5 wards — see where DCP has zero presence</p>
             </div>
             <div className="flex gap-2">
@@ -138,7 +140,7 @@ export default function PollingCoverage() {
             {/* Station List */}
             <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
-              <div className="grid grid-cols-12 px-6 py-3 bg-slate-50 border-b border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-400 min-w-[520px]">
+              <div className="grid grid-cols-12 px-6 py-3 bg-slate-50 border-b border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-400 w-full">
                 <div className="col-span-1">#</div>
                 <div className="col-span-5">Polling Station</div>
                 <div className="col-span-3">Ward</div>
@@ -148,7 +150,7 @@ export default function PollingCoverage() {
               <div className="divide-y divide-slate-100">
                 {loading ? (
                   Array.from({ length: 8 }).map((_, i) => (
-                    <div key={i} className="px-6 py-4 animate-pulse flex gap-4 min-w-[520px]">
+                    <div key={i} className="px-6 py-4 animate-pulse flex gap-4 w-full">
                       <div className="h-3 bg-slate-200 rounded flex-1" />
                       <div className="h-3 bg-slate-200 rounded w-20" />
                     </div>
@@ -158,7 +160,7 @@ export default function PollingCoverage() {
                     No stations match your filter
                   </div>
                 ) : filtered.map((s, i) => (
-                  <div key={s.station} className={`grid grid-cols-12 items-center px-6 py-4 gap-2 hover:bg-slate-50 transition min-w-[520px] ${s.count === 0 ? 'bg-red-50/30' : ''}`}>
+                  <div key={s.station} className={`grid grid-cols-12 items-center px-6 py-4 gap-2 hover:bg-slate-50 transition w-full ${s.count === 0 ? 'bg-red-50/30' : ''}`}>
                     <div className="col-span-1 text-[10px] font-black text-slate-400">#{i + 1}</div>
                     <div className="col-span-5">
                       <p className="font-black text-slate-900 text-sm truncate">{s.station}</p>

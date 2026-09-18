@@ -1,3 +1,4 @@
+import { useLanguage } from '../contexts/LanguageContext';
 import { useState, useEffect } from "react";
 import { Plus, Users, Calendar, MapPin, Search, CheckCircle2, UserCheck, Download } from "lucide-react";
 import { api } from "../lib/api";
@@ -5,6 +6,7 @@ import { toast } from "sonner";
 import { exportToCSV } from "../lib/exportUtils";
 
 export default function Events() {
+  const { t } = useLanguage();
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [attendees, setAttendees] = useState([]);
@@ -88,7 +90,7 @@ export default function Events() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_100%,rgba(0,132,61,0.25)_0%,transparent_60%)] pointer-events-none" />
         <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-400 mb-1">Field Mobilization</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-400 mb-1">{t('ev_title')}</p>
             <h1 className="text-3xl font-black text-white italic uppercase">Rally Check-ins</h1>
             <p className="text-slate-400 text-sm mt-1">Track physical attendance at DCP events and town halls.</p>
           </div>
@@ -102,7 +104,7 @@ export default function Events() {
       {showForm && (
         <form onSubmit={handleCreateEvent} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
           <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Event Name</label>
+            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{t('ev_name')}</label>
             <input required value={name} onChange={e => setName(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-dcp-green text-sm font-bold text-slate-900" placeholder="e.g. Kanjuiri Townhall" />
           </div>
           <div>
@@ -110,7 +112,7 @@ export default function Events() {
             <input required type="datetime-local" value={date} onChange={e => setDate(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-dcp-green text-sm font-bold text-slate-900" />
           </div>
           <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Location</label>
+            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{t('ev_location')}</label>
             <input required value={location} onChange={e => setLocation(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-dcp-green text-sm font-bold text-slate-900" placeholder="Ward / Venue" />
           </div>
           <button type="submit" className="w-full py-3 bg-slate-900 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-800 transition">
@@ -122,7 +124,7 @@ export default function Events() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Event List */}
         <div className="md:col-span-1 space-y-3">
-          <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest px-2">Upcoming Events</h3>
+          <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest px-2">{t('ev_upcoming')}</h3>
           {events.map((evt) => (
             <button
               key={evt.id}
@@ -157,7 +159,7 @@ export default function Events() {
                 </div>
                 <div className="bg-slate-100 px-4 py-2 rounded-xl text-center">
                   <p className="text-2xl font-black text-slate-900">{attendees.length}</p>
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Checked In</p>
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('ev_checked_in')}</p>
                 </div>
               </div>
 

@@ -1,10 +1,12 @@
+import { useLanguage } from '../contexts/LanguageContext';
 import { useState, useEffect } from "react";
 import { Users, Search, Edit2, ShieldCheck, MapPin, X, Check } from "lucide-react";
 import { toast } from "sonner";
-import { api } from "../lib/api";
+import { api, API_BASE_URL } from "../lib/api";
 import { useLocationData } from "../contexts/LocationContext";
 
 export default function SecurityRoster() {
+  const { t } = useLanguage();
   const [personnel, setPersonnel] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -36,7 +38,7 @@ export default function SecurityRoster() {
       {/* Header */}
       <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row justify-between md:items-center gap-4">
         <div>
-          <h2 className="text-xl font-black text-slate-900 uppercase tracking-widest">Security Roster</h2>
+          <h2 className="text-xl font-black text-slate-900 uppercase tracking-widest">{t('sec_roster')}</h2>
           <p className="text-xs text-slate-500 font-bold mt-1">Manage personnel assignments & contact details</p>
         </div>
         <div className="relative w-full md:w-64">
@@ -106,6 +108,7 @@ export default function SecurityRoster() {
 }
 
 function AssignmentModal({ person, onClose, onSuccess, wardsWithCenters }) {
+  const { t } = useLanguage();
   const [form, setForm] = useState({
     ward: person.ward || "",
     polling_station: person.polling_station || "",
@@ -118,7 +121,7 @@ function AssignmentModal({ person, onClose, onSuccess, wardsWithCenters }) {
   const handleSave = async () => {
     setSaving(true);
     // Use the toggle-active endpoint which supports PATCHing these fields
-    const res = await fetch(`https://ol-kalou-backend-7tko.onrender.com/api/members/${person.id}/toggle-active/`, {
+    const res = await fetch(`${API_BASE_URL}/members/${person.id}/toggle-active/`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -141,14 +144,14 @@ function AssignmentModal({ person, onClose, onSuccess, wardsWithCenters }) {
       <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
         <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
           <div>
-            <h3 className="font-black text-lg uppercase tracking-widest text-slate-900">Edit Assignment</h3>
+            <h3 className="font-black text-lg uppercase tracking-widest text-slate-900">{t('sec_edit_assignment')}</h3>
             <p className="text-xs font-bold text-slate-500 mt-1">{person.full_name}</p>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
         </div>
         <div className="p-6 space-y-5">
           <div>
-            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Security Rank</label>
+            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">{t('sec_rank')}</label>
             <select value={form.security_rank} onChange={e => setForm({...form, security_rank: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none">
               <option value="guard">Guard</option>
               <option value="station_commander">Station Commander</option>

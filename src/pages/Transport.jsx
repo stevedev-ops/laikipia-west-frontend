@@ -1,3 +1,4 @@
+import { useLanguage } from '../contexts/LanguageContext';
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bike, MapPin, Phone, CheckCircle2, Clock, Plus, AlertTriangle } from "lucide-react";
@@ -12,6 +13,7 @@ const STATUS_CONFIG = {
 };
 
 function RideCard({ ride, onUpdate }) {
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [rider, setRider] = useState(ride.rider_name || "");
   const [riderPhone, setRiderPhone] = useState(ride.rider_phone || "");
@@ -55,7 +57,7 @@ function RideCard({ ride, onUpdate }) {
         <div className="flex items-start gap-2">
            <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
            <div>
-             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Pickup Point</p>
+             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{t('trans_pickup')}</p>
              <p className="font-bold text-slate-700 text-sm">{ride.pickup_location}</p>
            </div>
         </div>
@@ -70,12 +72,12 @@ function RideCard({ ride, onUpdate }) {
 
       {ride.status === "pending" && (
         <div>
-          <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Assign Rider Name</label>
+          <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('trans_rider')}</label>
           <input value={rider} onChange={e => setRider(e.target.value)}
             placeholder="Boda rider's name"
             className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-sm font-bold outline-none focus:border-dcp-green/50 transition mb-3" />
           
-          <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Assign Rider Phone</label>
+          <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('trans_rider_phone')}</label>
           <input value={riderPhone} onChange={e => setRiderPhone(e.target.value)}
             placeholder="07XX XXX XXX"
             className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-sm font-bold outline-none focus:border-dcp-green/50 transition" />
@@ -111,6 +113,7 @@ function RideCard({ ride, onUpdate }) {
 }
 
 export default function Transport({ memberId, isAdmin = false }) {
+  const { t } = useLanguage();
   const { wardsWithCenters } = useLocationData();
   const [rides, setRides] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -154,7 +157,7 @@ export default function Transport({ memberId, isAdmin = false }) {
           <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 md:gap-4">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-400 mb-1">Election Day · Boda-Boda Network</p>
-              <h1 className="text-3xl font-black text-white italic uppercase">Transport Coordinator</h1>
+              <h1 className="text-3xl font-black text-white italic uppercase">{t('trans_coordinator')}</h1>
               <p className="text-slate-400 text-sm mt-1">Get every DCP voter to the polls — no one left behind</p>
             </div>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
@@ -199,17 +202,22 @@ export default function Transport({ memberId, isAdmin = false }) {
         </AnimatePresence>
 
         {/* Ward Filter */}
-        <div className="flex gap-3 overflow-x-auto pb-1">
-          <button onClick={() => setWardFilter("")}
-            className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest shrink-0 transition border ${!wardFilter ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-400 border-slate-200"}`}>
-            All Wards
-          </button>
-          {wardsWithCenters.map(w => (
-            <button key={w.id} onClick={() => setWardFilter(w.name)}
-              className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest shrink-0 transition border ${wardFilter === w.name ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-400 border-slate-200"}`}>
-              {w.label}
-            </button>
-          ))}
+        <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-2">
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 shrink-0">
+            {t('filter_ward')}:
+          </span>
+          <select
+            value={wardFilter}
+            onChange={(e) => setWardFilter(e.target.value)}
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer"
+          >
+            <option value="">🏛️ {t('all_wards')}</option>
+            {wardsWithCenters.map(w => (
+              <option key={w.id} value={w.name}>
+                📍 {w.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Rides Grid */}

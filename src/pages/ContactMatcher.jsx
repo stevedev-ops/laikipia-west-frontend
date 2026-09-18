@@ -1,3 +1,4 @@
+import { useLanguage } from '../contexts/LanguageContext';
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, MapPin, Users, UserPlus, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
@@ -6,6 +7,7 @@ import { api } from "../lib/api";
 import { Link } from "react-router-dom";
 
 export default function ContactMatcher() {
+  const { t } = useLanguage();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -34,8 +36,8 @@ export default function ContactMatcher() {
           <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-400 mb-1">Friends & Family Network</p>
-              <h1 className="text-3xl font-black text-white italic uppercase">Contact Matcher</h1>
-              <p className="text-slate-400 text-sm mt-1">Search the Ol Kalou voter roll for relatives to recruit.</p>
+              <h1 className="text-3xl font-black text-white italic uppercase">{t('cm_title')}</h1>
+              <p className="text-slate-400 text-sm mt-1">Search the Laikipia voter roll for relatives to recruit.</p>
             </div>
             <div className="w-16 h-16 rounded-3xl bg-dcp-green/20 border border-dcp-green/30 flex items-center justify-center">
               <Users className="text-dcp-green w-8 h-8" />
@@ -93,13 +95,13 @@ export default function ContactMatcher() {
                       {v.is_member ? (
                         <div className="flex flex-col items-center justify-center bg-dcp-green/10 text-dcp-green rounded-xl p-2 px-3">
                           <CheckCircle2 className="w-5 h-5 mb-1" />
-                          <span className="text-[8px] font-black uppercase tracking-widest">Enrolled</span>
+                          <span className="text-[8px] font-black uppercase tracking-widest">{t('cm_enrolled')}</span>
                         </div>
                       ) : (
                         <Link to={`/enroll?q=${encodeURIComponent(v.id_number || v.full_name)}`}
                           className="flex flex-col items-center justify-center bg-white border border-slate-200 text-slate-600 rounded-xl p-2 px-3 hover:bg-slate-100 transition shadow-sm">
                           <UserPlus className="w-5 h-5 mb-1 text-amber-500" />
-                          <span className="text-[8px] font-black uppercase tracking-widest">Recruit</span>
+                          <span className="text-[8px] font-black uppercase tracking-widest">{t('cm_recruit')}</span>
                         </Link>
                       )}
                     </div>

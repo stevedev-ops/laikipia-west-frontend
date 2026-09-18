@@ -1,5 +1,6 @@
+import Diary from './Diary';
 import { useState, useEffect, useCallback } from "react";
-import { Users, Star, Network, Database, ShieldCheck, MapPin, Search, Menu, X, CheckCircle2, ChevronRight, ChevronDown, Plus, Download, User, Smartphone, Hash, LayoutDashboard, BarChart3, LogOut, UserCheck, Mail, BookOpen, Truck, UserCog, ClipboardList, AlertTriangle, Phone, Link2, MessageSquare, Navigation, Trophy, UserPlus, Calendar, Megaphone, Loader2, BrainCircuit, Activity } from "lucide-react";
+import { AlertCircle, Users, Star, Network, Database, ShieldCheck, MapPin, Search, Menu, X, CheckCircle2, ChevronRight, ChevronDown, Plus, Download, User, Smartphone, Hash, LayoutDashboard, BarChart3, LogOut, UserCheck, Mail, BookOpen, Truck, UserCog, ClipboardList, AlertTriangle, Phone, Link2, MessageSquare, Navigation, Trophy, UserPlus, Calendar, Megaphone, Loader2, BrainCircuit, Activity } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { api } from "../lib/api";
 import { useLocationData } from "../contexts/LocationContext";
@@ -20,6 +21,7 @@ import SecurityCommand from "./SecurityCommand";
 import PhoneBank from "./PhoneBank";
 import ContactMatcher from "./ContactMatcher";
 import { exportToCSV } from "../lib/exportUtils";
+import { LAIKIPIA_CONSTITUENCIES, ALL_LAIKIPIA_WARDS } from "../lib/constants";
 import SmsExport from "./SmsExport";
 import Gotv from "./Gotv";
 import Leaderboard from "./Leaderboard";
@@ -74,9 +76,15 @@ const LineageCard = ({ label, title, subtitle, badge, meta }) => (
   </div>
 );
 
-const NavItem = ({ id, icon: Icon, label, count, activeTab, setActiveTab }) => (
+const NavItem = ({ id, icon: Icon, label, count, activeTab, setActiveTab, onSelect }) => (
   <button 
-    onClick={() => setActiveTab(id)}
+    onClick={() => {
+      setActiveTab(id);
+      if (onSelect) onSelect();
+      if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+        // Handled by onSelect or state
+      }
+    }}
     className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${
       activeTab === id 
         ? 'bg-slate-950 text-white shadow-md' 
@@ -99,6 +107,7 @@ const NavItem = ({ id, icon: Icon, label, count, activeTab, setActiveTab }) => (
 
 const TreeNode = ({ member, depth = 0, onSelectMember }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [children, setChildren] = useState([]);
   const [loading, setLoading] = useState(false);
   const [childrenCount, setChildrenCount] = useState(0);
@@ -107,7 +116,8 @@ const TreeNode = ({ member, depth = 0, onSelectMember }) => {
     getChildrenById(member.id).then(ch => setChildrenCount(ch.length));
   }, [member.id]);
 
-  const toggleExpand = async () => {
+  const toggleExpand = async (e) => {
+    if (e) e.stopPropagation();
     if (!isExpanded) {
       if (children.length === 0) {
         setLoading(true);
@@ -119,62 +129,163 @@ const TreeNode = ({ member, depth = 0, onSelectMember }) => {
     setIsExpanded(!isExpanded);
   };
 
-  const isRoot = !member.referred_by;
+  const toggleDetails = (e) => {
+    if (e) e.stopPropagation();
+    setIsDetailsOpen(!isDetailsOpen);
+    if (onSelectMember) onSelectMember(member);
+  };
+
+  const isDigital = member.source && member.source !== 'field_mobilizer';
+  const isRoot = !member.referred_by && !isDigital;
   const maxQuota = isRoot ? 25 : 5;
   const isFull = childrenCount >= maxQuota;
 
   return (
-    <div className="w-full">
+    <div className="w-full my-1.5">
       <div 
-        className={`flex items-center group py-2 px-3 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer ${depth === 0 ? 'bg-white border mb-2 shadow-sm' : ''}`}
-        style={{ paddingLeft: `${depth * 28 + 12}px` }}
+        onClick={toggleDetails}
+        className={`flex items-center justify-between group py-3 px-3.5 rounded-2xl transition-all cursor-pointer border select-none ${
+          isDetailsOpen ? 'bg-amber-50/80 border-amber-400 shadow-md' : 'bg-white hover:bg-slate-50 border-slate-200 shadow-sm'
+        }`}
+        style={{ marginLeft: `${depth * 20}px` }}
       >
-        <div className="w-6 h-6 flex items-center justify-center mr-2">
-          {childrenCount > 0 ? (
-            <button 
-              onClick={(e) => { e.stopPropagation(); toggleExpand(); }}
-              className="p-1 hover:bg-slate-200 rounded text-slate-500"
-            >
-              {loading ? (
-                <div className="w-3 h-3 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
-              ) : isExpanded ? (
-                <ChevronDown size={16} />
-              ) : (
-                <ChevronRight size={16} />
-              )}
-            </button>
-          ) : (
-            <div className="w-1.5 h-1.5 rounded-full bg-slate-300 ml-2" />
-          )}
-        </div>
-
-        <div 
-          className="flex-1 flex items-center gap-3 overflow-hidden"
-          onClick={() => onSelectMember(member)}
-        >
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isRoot ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-600'}`}>
-            {isRoot ? <Star size={14} /> : <User size={14} />}
+        <div className="flex items-center gap-3 min-w-0">
+          <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-xs font-black shadow-sm ${
+            isRoot ? 'bg-amber-100 text-amber-700 border border-amber-300' : 'bg-slate-100 text-slate-600 border border-slate-200'
+          }`}>
+            {isRoot ? <Star size={16} /> : <User size={16} />}
           </div>
-          <div className="flex-1 min-w-0">
-            <h4 className="text-sm font-bold text-slate-900 truncate">{member.full_name}</h4>
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider truncate">
-              {member.ward} · {member.polling_station}
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <h4 className="text-sm font-black text-slate-900 truncate">{member.full_name}</h4>
+              {member.is_voter_verified && (
+                <CheckCircle2 size={12} className="text-dcp-green shrink-0" title="Verified 2022 Voter" />
+              )}
+              {member.source && member.source !== 'field_mobilizer' && (
+                <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-purple-100 text-purple-800">
+                  {member.source}
+                </span>
+              )}
+            </div>
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate mt-0.5">
+              {member.ward || 'No Ward'} {member.polling_station ? `· ${member.polling_station}` : ''}
             </p>
           </div>
-          <div className="flex items-center gap-4 flex-shrink-0">
-            <span className={`text-xs font-black ${isFull ? 'text-dcp-green' : 'text-slate-600'}`}>
-              {childrenCount} <span className="text-slate-400 font-bold">/ {maxQuota}</span>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Downline recruits button if children exist */}
+          {childrenCount > 0 && (
+            <button 
+              type="button"
+              onClick={toggleExpand}
+              className={`px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition ${
+                isExpanded ? 'bg-amber-200 text-amber-950 border border-amber-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
+              }`}
+              title="Expand downline invitees"
+            >
+              <Users size={12} className={isExpanded ? 'text-amber-800' : 'text-slate-500'} />
+              <span>{childrenCount}</span>
+              {loading ? (
+                <div className="w-2.5 h-2.5 border-2 border-slate-500 border-t-transparent rounded-full animate-spin ml-0.5" />
+              ) : isExpanded ? (
+                <ChevronDown size={13} className="text-amber-800" />
+              ) : (
+                <ChevronRight size={13} className="text-slate-400" />
+              )}
+            </button>
+          )}
+
+          {childrenCount === 0 && (
+            <span className="text-[10px] font-bold text-slate-400 px-2 py-0.5 bg-slate-100 rounded-lg">
+              0 recruits
+            </span>
+          )}
+
+          {/* Details toggle arrow */}
+          <button
+            type="button"
+            onClick={toggleDetails}
+            className={`p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition ${
+              isDetailsOpen ? 'text-amber-700 bg-amber-100' : ''
+            }`}
+            title={isDetailsOpen ? "Collapse details" : "View details below"}
+          >
+            {isDetailsOpen ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+          </button>
+        </div>
+      </div>
+
+      {/* Inline Details Dropdown Below Member */}
+      {isDetailsOpen && (
+        <div 
+          className="border border-slate-200/90 bg-slate-50 rounded-2xl p-4 sm:p-5 my-2 space-y-3 text-xs animate-in fade-in duration-150 shadow-sm"
+          style={{ marginLeft: `${depth * 20}px` }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm">
+              <p className="text-[8px] font-black uppercase text-slate-400">Phone</p>
+              <p className="font-bold text-slate-800 truncate mt-0.5">{member.phone || 'N/A'}</p>
+            </div>
+            <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm">
+              <p className="text-[8px] font-black uppercase text-slate-400">National ID</p>
+              <p className="font-bold text-slate-800 truncate mt-0.5">{member.national_id || 'N/A'}</p>
+            </div>
+            <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm">
+              <p className="text-[8px] font-black uppercase text-slate-400">Recruitment Source</p>
+              <p className="font-bold text-slate-800 truncate mt-0.5 capitalize">{member.source || 'field_mobilizer'}</p>
+            </div>
+            <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm">
+              <p className="text-[8px] font-black uppercase text-slate-400">Volunteer Role</p>
+              <p className="font-bold text-slate-800 truncate mt-0.5 capitalize">{(member.volunteer_role || 'general_supporter').replace('_', ' ')}</p>
+            </div>
+          </div>
+
+          {member.custom_role && (
+            <div className="bg-purple-50 border border-purple-200 text-purple-900 p-2.5 rounded-xl text-xs">
+              <strong>Custom Skill / Notes:</strong> {member.custom_role}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between gap-2 flex-wrap pt-1 border-t border-slate-200/80">
+            <div className="flex items-center gap-2">
+              {member.phone && (
+                <a
+                  href={`tel:${member.phone}`}
+                  className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black flex items-center gap-1.5 shadow-sm transition"
+                >
+                  <Phone size={12} /> Call
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  const link = `${window.location.origin}/?ref=${member.id}`;
+                  navigator.clipboard.writeText(link);
+                  toast.success("Referral link copied!");
+                }}
+                className="px-3.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-[11px] font-bold flex items-center gap-1.5 transition shadow-sm"
+              >
+                <Link2 size={12} /> Copy Link
+              </button>
+            </div>
+
+            <span className="text-[10px] font-bold text-slate-500">
+              {childrenCount} direct downline recruits
             </span>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Children Downline Tree */}
       <AnimatePresence initial={false}>
         {isExpanded && children.length > 0 && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden border-l border-slate-200 ml-7"
+            className="overflow-hidden border-l-2 border-slate-200 pl-2 sm:pl-3 ml-4 sm:ml-5 my-1"
           >
             {children.map(child => (
               <TreeNode 
@@ -195,8 +306,358 @@ const TreeNode = ({ member, depth = 0, onSelectMember }) => {
 // Admin Component
 // ─────────────────────────────────────────────────────────────────────────────
 
+
+// ─── Invitee Drilldown Node (Recursive) ──────────────────────────────────────
+function InviteeNode({ 
+  member, 
+  depth = 1,
+  wardStationMap,
+  onPromoteToRoot
+}) {
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isInviteesOpen, setIsInviteesOpen] = useState(false);
+  const [invitees, setInvitees] = useState([]);
+  const [loadingInvitees, setLoadingInvitees] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const currentMember = member;
+  const directCount = currentMember.recruits_count || 0;
+
+  const toggleInvitees = async (e) => {
+    if (e) e.stopPropagation();
+    if (!isInviteesOpen && !hasLoaded) {
+      setLoadingInvitees(true);
+      try {
+        const fetched = await getChildrenById(currentMember.id);
+        setInvitees(fetched);
+        setHasLoaded(true);
+      } catch (err) {
+        console.error("Failed to load invitees", err);
+      } finally {
+        setLoadingInvitees(false);
+      }
+    }
+    setIsInviteesOpen(!isInviteesOpen);
+  };
+
+  const toggleDetails = (e) => {
+    if (e) e.stopPropagation();
+    setIsDetailsOpen(!isDetailsOpen);
+  };
+
+  return (
+    <div className={`rounded-2xl border transition-all ${
+      isDetailsOpen ? 'border-amber-300 bg-white shadow-sm' : 'border-slate-200/80 bg-white/90 hover:bg-white'
+    }`}>
+      {/* Invitee Row Header */}
+      <div 
+        onClick={toggleDetails}
+        className="p-3.5 flex items-center justify-between gap-3 cursor-pointer select-none"
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 text-xs font-black">
+            <User size={14} />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <h5 className="text-xs sm:text-sm font-black text-slate-900 truncate">{currentMember.full_name}</h5>
+              {currentMember.is_voter_verified && (
+                <CheckCircle2 size={11} className="text-dcp-green shrink-0" title="Verified 2022 Voter" />
+              )}
+              {currentMember.security_rank && currentMember.security_rank !== 'none' && (
+                <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-blue-100 text-blue-800">
+                  {currentMember.security_rank.replace('_', ' ')}
+                </span>
+              )}
+            </div>
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate mt-0.5">
+              {currentMember.ward || 'No Ward'} {currentMember.polling_station ? `· ${currentMember.polling_station}` : ''}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          {/* If they have invitees, show an arrow button specifically for invitees */}
+          {directCount > 0 && (
+            <button
+              type="button"
+              onClick={toggleInvitees}
+              className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition ${
+                isInviteesOpen 
+                  ? 'bg-amber-100 text-amber-900 border border-amber-300' 
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
+              }`}
+              title="Toggle downline invitees"
+            >
+              <Users size={12} className={isInviteesOpen ? 'text-amber-700' : 'text-slate-500'} />
+              <span>{directCount}</span>
+              {loadingInvitees ? (
+                <div className="w-2.5 h-2.5 border-2 border-slate-500 border-t-transparent rounded-full animate-spin ml-0.5" />
+              ) : isInviteesOpen ? (
+                <ChevronDown size={12} className="text-amber-700" />
+              ) : (
+                <ChevronRight size={12} className="text-slate-400" />
+              )}
+            </button>
+          )}
+
+          {directCount === 0 && (
+            <span className="text-[10px] font-bold text-slate-400 px-2 py-0.5 bg-slate-50 rounded-lg">
+              0 recruits
+            </span>
+          )}
+
+          {/* Details toggle arrow */}
+          <button
+            type="button"
+            onClick={toggleDetails}
+            className={`p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition ${
+              isDetailsOpen ? 'text-amber-600 bg-amber-50' : ''
+            }`}
+            title={isDetailsOpen ? "Collapse details" : "View details"}
+          >
+            {isDetailsOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+          </button>
+        </div>
+      </div>
+
+      {/* Expanded Details of Invitee */}
+      {isDetailsOpen && (
+        <div 
+          className="border-t border-slate-100 bg-slate-50/70 p-4 space-y-3.5 text-xs animate-in fade-in duration-150"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Quick info grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm">
+              <p className="text-[8px] font-black uppercase text-slate-400">Phone</p>
+              <p className="font-bold text-slate-800 truncate mt-0.5">{currentMember.phone || 'N/A'}</p>
+            </div>
+            <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm">
+              <p className="text-[8px] font-black uppercase text-slate-400">National ID</p>
+              <p className="font-bold text-slate-800 truncate mt-0.5">{currentMember.national_id || 'N/A'}</p>
+            </div>
+            <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm">
+              <p className="text-[8px] font-black uppercase text-slate-400">Direct Recruits</p>
+              <p className="font-bold text-slate-800 truncate mt-0.5">{directCount}</p>
+            </div>
+            <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm">
+              <p className="text-[8px] font-black uppercase text-slate-400">Voter Status</p>
+              <p className={`font-bold truncate mt-0.5 ${currentMember.is_voter_verified ? 'text-emerald-700' : 'text-slate-500'}`}>
+                {currentMember.is_voter_verified ? 'Verified' : 'Unverified'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-2 flex-wrap pt-1">
+            <div className="flex items-center gap-2">
+              {currentMember.phone && (
+                <a
+                  href={`tel:${currentMember.phone}`}
+                  className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold flex items-center gap-1.5 shadow-sm transition"
+                >
+                  <Phone size={11} /> Call
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  const link = `${window.location.origin}/?ref=${currentMember.id}`;
+                  navigator.clipboard.writeText(link);
+                  toast.success("Referral link copied!");
+                }}
+                className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-[11px] font-bold flex items-center gap-1.5 transition shadow-sm"
+              >
+                <Link2 size={11} /> Copy Link
+              </button>
+            </div>
+
+            {directCount > 0 && !isInviteesOpen && (
+              <button
+                type="button"
+                onClick={toggleInvitees}
+                className="px-3 py-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 border border-amber-300 text-amber-900 text-[11px] font-black flex items-center gap-1.5 transition"
+              >
+                <Users size={12} /> View {directCount} Downline Invitees <ChevronRight size={12} />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Nested Invitees (Drill Down) */}
+      {isInviteesOpen && (
+        <div 
+          className="border-t border-slate-200 bg-amber-50/20 p-3 sm:p-4 space-y-2.5 pl-3 sm:pl-5 border-l-4 border-l-amber-400"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between pb-1">
+            <p className="text-[10px] font-black uppercase tracking-widest text-amber-800 flex items-center gap-1.5">
+              <Users size={12} className="text-amber-600" />
+              Direct Invitees of {currentMember.full_name} ({invitees.length})
+            </p>
+            <button
+              type="button"
+              onClick={toggleInvitees}
+              className="text-[10px] font-bold text-slate-400 hover:text-slate-700"
+            >
+              Hide
+            </button>
+          </div>
+
+          {loadingInvitees ? (
+            <div className="py-4 text-center">
+              <div className="w-5 h-5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-1" />
+              <p className="text-[10px] font-bold text-slate-400 uppercase">Loading invitees...</p>
+            </div>
+          ) : invitees.length === 0 ? (
+            <p className="text-xs text-slate-400 py-2">No downline members found.</p>
+          ) : (
+            <div className="space-y-2">
+              {invitees.map(inv => (
+                <InviteeNode
+                  key={inv.id}
+                  member={inv}
+                  depth={depth + 1}
+                  wardStationMap={wardStationMap}
+                  onPromoteToRoot={onPromoteToRoot}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Admin({ onLogout }) {
   const { t } = useLanguage();
+  const handleSaveWhatsappLink = async () => {
+    if (!tempWhatsappLink.trim()) {
+      toast.error("Please enter a valid WhatsApp invite link");
+      return;
+    }
+    setSavingWhatsapp(true);
+    try {
+      const { data, error } = await api.updateCampaignConfig("whatsapp_community_link", tempWhatsappLink.trim());
+      if (error) {
+        throw new Error(error.error || error.message || "Failed to update WhatsApp link");
+      }
+      setWhatsappLink(tempWhatsappLink.trim());
+      setEditingWhatsapp(false);
+      toast.success("✅ Official WhatsApp Community Link updated successfully!");
+    } catch (err) {
+      toast.error(err.message || "Failed to update WhatsApp link");
+    } finally {
+      setSavingWhatsapp(false);
+    }
+  };
+
+  const copyShareLink = (platform) => {
+    const origin = window.location.origin;
+    const url = platform === "general" ? `${origin}/join` : `${origin}/join/${platform}`;
+    navigator.clipboard.writeText(url);
+    toast.success(`Copied ${platform.toUpperCase()} Join Link to clipboard!`);
+  };
+
+  const handleDownloadCallSmsList = async () => {
+    setExportingCsv(true);
+    try {
+      const params = {};
+      if (activeTab === "social") {
+        params.is_digital = 'true';
+        if (digitalSourceFilter !== "all") {
+          params.source = digitalSourceFilter;
+        }
+      } else if (activeTab === "mobilizers") {
+        params.referred_by = 'null';
+      }
+
+      if (wardFilter !== "all") params.ward = wardFilter;
+      if (voterStatusFilter !== "all" && activeTab !== "social") params.voter_status = voterStatusFilter;
+      if (searchQuery.trim()) params.search = searchQuery.trim();
+
+      const filterLabel = activeTab === "social"
+        ? `${digitalSourceFilter === "all" ? "All Channels" : digitalSourceFilter.toUpperCase()} Recruits`
+        : (wardFilter === "all" ? "All Wards" : wardFilter);
+
+      toast.info(`Preparing Call & SMS list for ${filterLabel}...`);
+      await api.downloadMembersCsv(params);
+      toast.success("✅ Downloaded Call & SMS list successfully!");
+    } catch (err) {
+      console.warn("API export failed, using local member export:", err);
+      // Fallback: Export loaded members formatted specifically for calling/texting
+      let sourceList = activeTab === "social" 
+        ? digitalMembers 
+        : (activeTab === "mobilizers" ? roots : allMembers);
+
+      if (activeTab === "social") {
+        if (digitalSourceFilter !== "all") {
+          sourceList = sourceList.filter(m => {
+            const s = (m.source || '').toLowerCase();
+            if (digitalSourceFilter === 'x_twitter') return ['x', 'twitter', 'x_twitter'].includes(s);
+            if (digitalSourceFilter === 'whatsapp') return ['wa', 'whatsapp'].includes(s);
+            if (digitalSourceFilter === 'tiktok') return ['tt', 'tiktok'].includes(s);
+            if (digitalSourceFilter === 'facebook') return ['fb', 'facebook'].includes(s);
+            if (digitalSourceFilter === 'social_media') return ['social_media', 'social', 'social_link', 'website', 'web'].includes(s);
+            return s === digitalSourceFilter.toLowerCase();
+          });
+        }
+        if (wardFilter !== "all") {
+          sourceList = sourceList.filter(m => (m.official_ward || m.ward || '').toLowerCase() === wardFilter.toLowerCase());
+        }
+        if (searchQuery.trim()) {
+          const q = searchQuery.trim().toLowerCase();
+          sourceList = sourceList.filter(m => 
+            (m.full_name || '').toLowerCase().includes(q) || 
+            (m.phone || '').includes(q) || 
+            (m.national_id || '').includes(q)
+          );
+        }
+      }
+
+      const dataToExport = sourceList.map(m => ({
+        "Full Name": m.full_name,
+        "Phone (Call / SMS)": m.phone,
+        "Ward": m.official_ward || m.ward,
+        "Polling Station": m.official_polling_station || m.polling_station || "N/A",
+        "Source Channel": m.source || "field_mobilizer",
+        "Volunteer Role": (m.volunteer_role || "general_supporter").replace('_', ' ').toUpperCase(),
+        "Custom Skills / Notes": m.custom_role || "",
+        "Mobilizer": m.referrer_name || (m.referred_by ? "Delegate" : "Unassigned Online Supporter"),
+        "2022 Verified Voter": m.is_voter_verified ? "YES" : "NO"
+      }));
+      const fileLabel = activeTab === "social" 
+        ? `digital_${digitalSourceFilter}_${wardFilter.toLowerCase().replace(/\s+/g, '_')}` 
+        : `members_${wardFilter.toLowerCase().replace(/\s+/g, '_')}`;
+      exportToCSV(dataToExport, `dcp_${fileLabel}_${new Date().toISOString().split('T')[0]}`);
+      toast.success("✅ Downloaded contact list!");
+    } finally {
+      setExportingCsv(false);
+    }
+  };
+
+  const loadDigitalMembers = useCallback(async (q = "", ward = "all", source = "all") => {
+    setLoadingDigital(true);
+    try {
+      const params = { is_digital: 'true' };
+      if (q.trim()) params.search = q.trim();
+      if (ward !== 'all') params.ward = ward;
+      if (source !== 'all') params.source = source;
+
+      const { data, error } = await api.getMembers(params);
+      if (data) {
+        const list = (data.results || []).filter(m => !m.is_admin && !m.is_staff);
+        setDigitalMembers(list);
+        setDigitalCount(data.count || list.length);
+      }
+    } catch (err) {
+      console.error("Error loading digital recruits", err);
+    } finally {
+      setLoadingDigital(false);
+    }
+  }, []);
+
   const handlePanicWipe = () => {
     localStorage.clear();
     window.location.href = "https://www.google.com/search?q=weather+in+nairobi";
@@ -219,7 +680,7 @@ export default function Admin({ onLogout }) {
   const [broadcastTargetStations, setBroadcastTargetStations] = useState([]);
   const [broadcastTargetMembers, setBroadcastTargetMembers] = useState([]);
   const [isBroadcasting, setIsBroadcasting] = useState(false); 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => typeof window !== 'undefined' ? window.innerWidth >= 1024 : false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [addModalStep, setAddModalStep] = useState('lookup');
@@ -228,6 +689,22 @@ export default function Admin({ onLogout }) {
   // Sidebar Notification Counts
   const [transportCount, setTransportCount] = useState(0);
   const [incidentCount, setIncidentCount] = useState(0);
+
+  // Dynamic WhatsApp Community & Social Join Config
+  const [whatsappLink, setWhatsappLink] = useState("https://chat.whatsapp.com/sample");
+  const [editingWhatsapp, setEditingWhatsapp] = useState(false);
+  const [tempWhatsappLink, setTempWhatsappLink] = useState("");
+  const [savingWhatsapp, setSavingWhatsapp] = useState(false);
+
+  // Ward Filter & Call/SMS Export State
+  const [wardFilter, setWardFilter] = useState("all");
+  const [exportingCsv, setExportingCsv] = useState(false);
+
+  // Digital & Social Recruits State
+  const [digitalMembers, setDigitalMembers] = useState([]);
+  const [digitalCount, setDigitalCount] = useState(0);
+  const [loadingDigital, setLoadingDigital] = useState(false);
+  const [digitalSourceFilter, setDigitalSourceFilter] = useState("all");
 
   useEffect(() => {
     const fetchCounts = async () => {
@@ -251,6 +728,33 @@ export default function Admin({ onLogout }) {
   const [addModalPrefill, setAddModalPrefill] = useState(null);
   const [addModalVoter, setAddModalVoter] = useState(null);
   const [selectedMember, setSelectedMember] = useState(null);
+  const [mainInvitees, setMainInvitees] = useState([]);
+  const [showMainInvitees, setShowMainInvitees] = useState(false);
+  const [loadingMainInvitees, setLoadingMainInvitees] = useState(false);
+
+  useEffect(() => {
+    setMainInvitees([]);
+    setShowMainInvitees(false);
+    setLoadingMainInvitees(false);
+  }, [selectedMember?.id]);
+
+  const toggleMainMemberInvitees = async (e) => {
+    if (e) e.stopPropagation();
+    if (!showMainInvitees && mainInvitees.length === 0 && selectedMember) {
+      setLoadingMainInvitees(true);
+      setShowMainInvitees(true);
+      try {
+        const children = await getChildrenById(selectedMember.id);
+        setMainInvitees(children);
+      } catch (err) {
+        console.error("Failed to load invitees", err);
+      } finally {
+        setLoadingMainInvitees(false);
+      }
+    } else {
+      setShowMainInvitees(!showMainInvitees);
+    }
+  };
   const [generatedInvite, setGeneratedInvite] = useState(null);
   const [isGeneratingInvite, setIsGeneratingInvite] = useState(false);
 
@@ -350,7 +854,7 @@ export default function Admin({ onLogout }) {
   }, [navigate]);
 
   // Fetch Members Page
-  const loadMembersPage = useCallback(async (pageIdx, q = "", voterStatus = "all") => {
+  const loadMembersPage = useCallback(async (pageIdx, q = "", voterStatus = "all", ward = wardFilter) => {
     setLoadingMoreMembers(true);
     try {
       const params = { 
@@ -360,6 +864,9 @@ export default function Admin({ onLogout }) {
       };
       if (voterStatus !== "all") {
         params.voter_status = voterStatus;
+      }
+      if (ward && ward !== "all") {
+        params.ward = ward;
       }
 
       const { data, error } = await api.getMembers(params);
@@ -378,7 +885,7 @@ export default function Admin({ onLogout }) {
       }
     } catch (err) { console.error(err); toast.error("Error loading recruits"); }
     finally { setLoadingMoreMembers(false); }
-  }, [navigate, memberSort]);
+  }, [navigate, memberSort, wardFilter]);
 
 
   const loadWardInsights = useCallback(async () => {
@@ -393,17 +900,19 @@ export default function Admin({ onLogout }) {
     }
   }, []);
 
-  // Debounced search effect
+  // Debounced search & filter effect
   useEffect(() => {
     const timer = setTimeout(() => {
       if (activeTab === "mobilizers") {
         loadRootPage(0, searchQuery);
       } else if (activeTab === "all") {
         loadMembersPage(0, searchQuery, voterStatusFilter);
+      } else if (activeTab === "social") {
+        loadDigitalMembers(searchQuery, wardFilter, digitalSourceFilter);
       }
     }, 400);
     return () => clearTimeout(timer);
-  }, [searchQuery, voterStatusFilter, activeTab, loadRootPage, loadMembersPage]);
+  }, [searchQuery, voterStatusFilter, activeTab, wardFilter, digitalSourceFilter, loadRootPage, loadMembersPage, loadDigitalMembers]);
 
 
   // Fetch Voter Records
@@ -439,6 +948,7 @@ export default function Admin({ onLogout }) {
     loadTotalRegistered();
     loadRootPage(0, "");
     loadMembersPage(0, "", voterStatusFilter);
+    loadDigitalMembers("", "all", "all");
     loadOverviewData();
     loadBroadcast();
     
@@ -616,13 +1126,22 @@ export default function Admin({ onLogout }) {
     <div className="min-h-screen bg-slate-50 flex w-full">
       <AnimatePresence initial={false}>
          {isSidebarOpen && (
-            <motion.div 
-               initial={{ x: -300 }}
-               animate={{ x: 0 }}
-               exit={{ x: -300 }}
-               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-               className="w-72 bg-white border-r border-slate-200 shadow-sm z-30 flex flex-col fixed inset-y-0 left-0"
-            >
+            <>
+              {/* Mobile overlay backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsSidebarOpen(false)}
+                className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-30 lg:hidden"
+              />
+              <motion.div 
+                 initial={{ x: -300 }}
+                 animate={{ x: 0 }}
+                 exit={{ x: -300 }}
+                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                 className="w-72 bg-white border-r border-slate-200 shadow-2xl lg:shadow-sm z-40 flex flex-col fixed inset-y-0 left-0"
+              >
                <div className="p-6 border-b border-slate-100 flex items-center justify-between">
                   <div className="flex items-center gap-4">
                      <div className="bg-slate-100 p-2 rounded-xl">
@@ -641,14 +1160,14 @@ export default function Admin({ onLogout }) {
                   {isSecurityMode ? (
                      <>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] px-4 py-2 mt-2">Security Operations</p>
-                        <NavItem id="security-command" icon={ShieldCheck} label="Security Overview" activeTab={activeTab} setActiveTab={setActiveTab} />
-                        <NavItem id="security-roster" icon={Users} label="Security Roster" activeTab={activeTab} setActiveTab={setActiveTab} />
-                        <NavItem id="incidents" icon={AlertTriangle} label="Incident Reports" count={incidentCount > 0 ? incidentCount : undefined} activeTab={activeTab} setActiveTab={setActiveTab} />
+                        <NavItem id="security-command" icon={ShieldCheck} label="Security Overview" activeTab={activeTab} setActiveTab={setActiveTab} onSelect={() => { if (typeof window !== "undefined" && window.innerWidth < 1024) setIsSidebarOpen(false); }} />
+                        <NavItem id="security-roster" icon={Users} label="Security Roster" activeTab={activeTab} setActiveTab={setActiveTab} onSelect={() => { if (typeof window !== "undefined" && window.innerWidth < 1024) setIsSidebarOpen(false); }} />
+                        <NavItem id="incidents" icon={AlertTriangle} label="Incident Reports" count={incidentCount > 0 ? incidentCount : undefined} activeTab={activeTab} setActiveTab={setActiveTab} onSelect={() => { if (typeof window !== "undefined" && window.innerWidth < 1024) setIsSidebarOpen(false); }} />
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] px-4 pt-6 pb-2">Intelligence & Field</p>
-                        <NavItem id="voter-registry" icon={Database} label="Voter Registry" activeTab={activeTab} setActiveTab={setActiveTab} />
-                        <NavItem id="coverage" icon={MapPin} label="Coverage Map" activeTab={activeTab} setActiveTab={setActiveTab} />
-                        <NavItem id="agents" icon={UserCog} label="Polling Agents" activeTab={activeTab} setActiveTab={setActiveTab} />
-                        <NavItem id="events" icon={Calendar} label="Rally Security" activeTab={activeTab} setActiveTab={setActiveTab} />
+                        <NavItem id="voter-registry" icon={Database} label="Voter Registry" activeTab={activeTab} setActiveTab={setActiveTab} onSelect={() => { if (typeof window !== "undefined" && window.innerWidth < 1024) setIsSidebarOpen(false); }} />
+                        <NavItem id="coverage" icon={MapPin} label="Coverage Map" activeTab={activeTab} setActiveTab={setActiveTab} onSelect={() => { if (typeof window !== "undefined" && window.innerWidth < 1024) setIsSidebarOpen(false); }} />
+                        <NavItem id="agents" icon={UserCog} label="Polling Agents" activeTab={activeTab} setActiveTab={setActiveTab} onSelect={() => { if (typeof window !== "undefined" && window.innerWidth < 1024) setIsSidebarOpen(false); }} />
+                        <NavItem id="events" icon={Calendar} label="Rally Security" activeTab={activeTab} setActiveTab={setActiveTab} onSelect={() => { if (typeof window !== "undefined" && window.innerWidth < 1024) setIsSidebarOpen(false); }} />
                         
                         <div className="mt-8 px-2">
                            <button onClick={() => setShowSecurityModal(true)} className="w-full flex items-center gap-3 p-3 rounded-xl transition-all text-slate-300 bg-slate-900 border border-slate-700 hover:bg-slate-800 hover:text-white shadow-lg">
@@ -660,28 +1179,30 @@ export default function Admin({ onLogout }) {
                   ) : (
                      <>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] px-4 py-2 mt-2">Dashboard</p>
-                        <NavItem id="overview" icon={LayoutDashboard} label="Overview" activeTab={activeTab} setActiveTab={setActiveTab} />
+                        <NavItem id="overview" icon={LayoutDashboard} label="Overview" activeTab={activeTab} setActiveTab={setActiveTab} onSelect={() => { if (typeof window !== "undefined" && window.innerWidth < 1024) setIsSidebarOpen(false); }} />
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] px-4 pt-6 pb-2">Network</p>
-                        <NavItem id="tree" icon={Network} label="Hierarchy" activeTab={activeTab} setActiveTab={setActiveTab} />
-                        <NavItem id="mobilizers" icon={Star} label="Mobilizers" count={roots.length} activeTab={activeTab} setActiveTab={setActiveTab} />
-                        <NavItem id="all" icon={Users} label="All Members" count={totalRegistered} activeTab={activeTab} setActiveTab={setActiveTab} />
+                        <NavItem id="tree" icon={Network} label="Hierarchy" activeTab={activeTab} setActiveTab={setActiveTab} onSelect={() => { if (typeof window !== "undefined" && window.innerWidth < 1024) setIsSidebarOpen(false); }} />
+                        <NavItem id="mobilizers" icon={Star} label="Mobilizers" count={roots.length} activeTab={activeTab} setActiveTab={setActiveTab} onSelect={() => { if (typeof window !== "undefined" && window.innerWidth < 1024) setIsSidebarOpen(false); }} />
+                        <NavItem id="social" icon={Megaphone} label="Social Recruits" count={digitalCount} activeTab={activeTab} setActiveTab={setActiveTab} onSelect={() => { if (typeof window !== "undefined" && window.innerWidth < 1024) setIsSidebarOpen(false); }} />
+                        <NavItem id="all" icon={Users} label="All Members" count={totalRegistered} activeTab={activeTab} setActiveTab={setActiveTab} onSelect={() => { if (typeof window !== "undefined" && window.innerWidth < 1024) setIsSidebarOpen(false); }} />
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] px-4 pt-6 pb-2">Intelligence</p>
-                        <NavItem id="voter-registry" icon={Database} label="Voter Registry" activeTab={activeTab} setActiveTab={setActiveTab} />
-                        <NavItem id="analytics" icon={BarChart3} label="System Analytics" activeTab={activeTab} setActiveTab={setActiveTab} />
+                        <NavItem id="voter-registry" icon={Database} label="Voter Registry" activeTab={activeTab} setActiveTab={setActiveTab} onSelect={() => { if (typeof window !== "undefined" && window.innerWidth < 1024) setIsSidebarOpen(false); }} />
+                        <NavItem id="analytics" icon={BarChart3} label="System Analytics" activeTab={activeTab} setActiveTab={setActiveTab} onSelect={() => { if (typeof window !== "undefined" && window.innerWidth < 1024) setIsSidebarOpen(false); }} />
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] px-4 pt-6 pb-2">Operations</p>
-                        <NavItem id="coverage" icon={MapPin} label="Coverage" activeTab={activeTab} setActiveTab={setActiveTab} />
-                        <NavItem id="canvass" icon={BookOpen} label="Panna (Canvass)" activeTab={activeTab} setActiveTab={setActiveTab} />
-                        <NavItem id="transport" icon={Truck} label="Boda Transport" count={transportCount > 0 ? transportCount : undefined} activeTab={activeTab} setActiveTab={setActiveTab} />
-                        <NavItem id="agents" icon={UserCog} label="Polling Agents" activeTab={activeTab} setActiveTab={setActiveTab} />
-                        <NavItem id="tally" icon={ClipboardList} label="PVT Tally" activeTab={activeTab} setActiveTab={setActiveTab} />
-                        <NavItem id="phonebank" icon={Phone} label="Phone Bank" activeTab={activeTab} setActiveTab={setActiveTab} />
-                        <NavItem id="matcher" icon={Link2} label="Contact Matcher" activeTab={activeTab} setActiveTab={setActiveTab} />
-                        <NavItem id="sms" icon={MessageSquare} label="SMS Export" activeTab={activeTab} setActiveTab={setActiveTab} />
-                        <NavItem id="events" icon={Calendar} label="Rally Check-ins" activeTab={activeTab} setActiveTab={setActiveTab} />
-                        <NavItem id="gotv" icon={Navigation} label="GOTV" activeTab={activeTab} setActiveTab={setActiveTab} />
-                        <NavItem id="leaderboard" icon={Trophy} label="Leaderboard" activeTab={activeTab} setActiveTab={setActiveTab} />
-                        <NavItem id="enroll" icon={UserPlus} label="Enroll Member" activeTab={activeTab} setActiveTab={setActiveTab} />
-                        <NavItem id="training" icon={BookOpen} label="Training Materials" activeTab={activeTab} setActiveTab={setActiveTab} />
+                        <NavItem id="coverage" icon={MapPin} label="Coverage" activeTab={activeTab} setActiveTab={setActiveTab} onSelect={() => { if (typeof window !== "undefined" && window.innerWidth < 1024) setIsSidebarOpen(false); }} />
+                        <NavItem id="canvass" icon={BookOpen} label="Panna (Canvass)" activeTab={activeTab} setActiveTab={setActiveTab} onSelect={() => { if (typeof window !== "undefined" && window.innerWidth < 1024) setIsSidebarOpen(false); }} />
+                        <NavItem id="transport" icon={Truck} label="Boda Transport" count={transportCount > 0 ? transportCount : undefined} activeTab={activeTab} setActiveTab={setActiveTab} onSelect={() => { if (typeof window !== "undefined" && window.innerWidth < 1024) setIsSidebarOpen(false); }} />
+                        <NavItem id="agents" icon={UserCog} label="Polling Agents" activeTab={activeTab} setActiveTab={setActiveTab} onSelect={() => { if (typeof window !== "undefined" && window.innerWidth < 1024) setIsSidebarOpen(false); }} />
+                        <NavItem id="tally" icon={ClipboardList} label="PVT Tally" activeTab={activeTab} setActiveTab={setActiveTab} onSelect={() => { if (typeof window !== "undefined" && window.innerWidth < 1024) setIsSidebarOpen(false); }} />
+                        <NavItem id="phonebank" icon={Phone} label="Phone Bank" activeTab={activeTab} setActiveTab={setActiveTab} onSelect={() => { if (typeof window !== "undefined" && window.innerWidth < 1024) setIsSidebarOpen(false); }} />
+                        <NavItem id="matcher" icon={Link2} label="Contact Matcher" activeTab={activeTab} setActiveTab={setActiveTab} onSelect={() => { if (typeof window !== "undefined" && window.innerWidth < 1024) setIsSidebarOpen(false); }} />
+                        <NavItem id="sms" icon={MessageSquare} label="SMS Export" activeTab={activeTab} setActiveTab={setActiveTab} onSelect={() => { if (typeof window !== "undefined" && window.innerWidth < 1024) setIsSidebarOpen(false); }} />
+                        <NavItem id="diary" icon={Calendar} label="Governor's Diary" activeTab={activeTab} setActiveTab={setActiveTab} onSelect={() => { if (typeof window !== "undefined" && window.innerWidth < 1024) setIsSidebarOpen(false); }} />
+                        <NavItem id="events" icon={Calendar} label="Rally Check-ins" activeTab={activeTab} setActiveTab={setActiveTab} onSelect={() => { if (typeof window !== "undefined" && window.innerWidth < 1024) setIsSidebarOpen(false); }} />
+                        <NavItem id="gotv" icon={Navigation} label="GOTV" activeTab={activeTab} setActiveTab={setActiveTab} onSelect={() => { if (typeof window !== "undefined" && window.innerWidth < 1024) setIsSidebarOpen(false); }} />
+                        <NavItem id="leaderboard" icon={Trophy} label="Leaderboard" activeTab={activeTab} setActiveTab={setActiveTab} onSelect={() => { if (typeof window !== "undefined" && window.innerWidth < 1024) setIsSidebarOpen(false); }} />
+                        <NavItem id="enroll" icon={UserPlus} label="Enroll Member" activeTab={activeTab} setActiveTab={setActiveTab} onSelect={() => { if (typeof window !== "undefined" && window.innerWidth < 1024) setIsSidebarOpen(false); }} />
+                        <NavItem id="training" icon={BookOpen} label="Training Materials" activeTab={activeTab} setActiveTab={setActiveTab} onSelect={() => { if (typeof window !== "undefined" && window.innerWidth < 1024) setIsSidebarOpen(false); }} />
                      </>
                   )}
                </div>
@@ -714,22 +1235,26 @@ export default function Admin({ onLogout }) {
                   </div>
                </div>
             </motion.div>
+            </>
          )}
       </AnimatePresence>
 
-      <div className={`flex-1 flex flex-col min-w-0 min-h-screen transition-all bg-slate-50/50 ${isSidebarOpen ? 'ml-72' : ''}`}>
-        <header className="h-20 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0 shadow-sm sticky top-0 z-20 w-full">
-         <div className="flex items-center gap-4">
-            {!isSidebarOpen && (
-               <button onClick={() => setIsSidebarOpen(true)} className="p-2.5 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl shadow-sm transition-colors">
-                  <Menu size={18} />
-               </button>
-            )}
-            <div>
-               <h1 className="text-xl font-black text-slate-900 uppercase tracking-widest">
+      <div className={`flex-1 flex flex-col min-w-0 min-h-screen transition-all bg-slate-50/50 ${isSidebarOpen ? 'lg:ml-72' : ''}`}>
+        <header className="h-16 sm:h-20 bg-white border-b border-slate-200 px-3 sm:px-6 flex items-center justify-between shrink-0 shadow-sm sticky top-0 z-20 w-full min-w-0 gap-2">
+         <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+            <button 
+               onClick={() => setIsSidebarOpen(v => !v)} 
+               className="p-2 sm:p-2.5 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl shadow-sm transition-colors shrink-0"
+               aria-label="Toggle menu"
+            >
+               <Menu size={18} />
+            </button>
+            <div className="min-w-0 flex-1">
+               <h1 className="text-xs sm:text-base md:text-xl font-black text-slate-900 uppercase tracking-wider sm:tracking-widest truncate">
                   {activeTab === 'overview' && 'System Overview'}
                   {activeTab === 'tree' && 'Mobilization Tree'}
                   {activeTab === 'mobilizers' && 'Root Directory'}
+                  {activeTab === 'social' && 'Social & Digital Recruits'}
                   {activeTab === 'all' && 'Membership Registry'}
                   {activeTab === 'security-command' && 'HQ Security Command'}
                   {activeTab === 'voter-registry' && '2022 Official Voter Database'}
@@ -743,6 +1268,7 @@ export default function Admin({ onLogout }) {
                   {activeTab === 'phonebank' && 'Phone Bank Operations'}
                   {activeTab === 'matcher' && 'Relational Contact Matcher'}
                   {activeTab === 'sms' && 'SMS Export'}
+                  {activeTab === 'diary' && "Governor's Campaign Diary & Chamas"}
                   {activeTab === 'events' && 'Rally & Event Check-ins'}
                   {activeTab === 'gotv' && 'GOTV — Get Out The Vote'}
                   {activeTab === 'leaderboard' && 'Mobilizer Leaderboard'}
@@ -755,16 +1281,14 @@ export default function Admin({ onLogout }) {
                </div>
             </div>
          </div>
-         <div className="flex items-center gap-1.5 sm:gap-2">
-           <button onClick={() => { setShowSecurityModal(true); }} className="bg-slate-800 border border-slate-700 text-white px-3 py-2 sm:px-4 sm:py-3 rounded-xl font-bold uppercase tracking-widest text-[9px] sm:text-[10px] items-center gap-1.5 sm:gap-2 hover:bg-slate-700 transition-colors shadow-lg flex shrink-0">
+         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+           <button onClick={() => { setShowSecurityModal(true); }} className="bg-slate-800 border border-slate-700 text-white px-2.5 py-2 sm:px-4 sm:py-2.5 rounded-xl font-bold uppercase tracking-widest text-[9px] sm:text-[10px] items-center gap-1.5 hover:bg-slate-700 transition-colors shadow-sm flex shrink-0">
               <ShieldCheck size={14} className="text-blue-400 shrink-0" /> 
-              <span className="hidden sm:inline">Deploy Security</span>
-              <span className="sm:hidden">Security</span>
+              <span className="hidden xs:inline">Security</span>
            </button>
-           <button onClick={() => { setShowAddModal(true); setAddModalStep('lookup'); setAddModalPrefill(null); }} className="bg-slate-950 text-white px-3 py-2 sm:px-5 sm:py-3 rounded-xl font-bold uppercase tracking-widest text-[9px] sm:text-xs items-center gap-1.5 sm:gap-2 hover:bg-slate-800 transition-colors shadow-lg flex shrink-0">
-              <Plus size={14} className="text-dcp-green shrink-0 sm:w-4 sm:h-4" /> 
-              <span className="hidden sm:inline">Establish Root</span>
-              <span className="sm:hidden">Add Root</span>
+           <button onClick={() => { setShowAddModal(true); setAddModalStep('lookup'); setAddModalPrefill(null); }} className="bg-slate-950 text-white px-2.5 py-2 sm:px-4 sm:py-2.5 rounded-xl font-bold uppercase tracking-widest text-[9px] sm:text-[10px] items-center gap-1.5 hover:bg-slate-800 transition-colors shadow-sm flex shrink-0">
+              <Plus size={14} className="text-dcp-green shrink-0" /> 
+              <span className="hidden xs:inline">Add Root</span>
            </button>
          </div>
         </header>
@@ -873,6 +1397,111 @@ export default function Admin({ onLogout }) {
                           <p className="text-sm font-black text-amber-400">{unverifiedNew.toLocaleString()}</p>
                         </div>
                       </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Digital Recruitment & Official WhatsApp Link Settings */}
+                <div className="bg-gradient-to-br from-slate-900 via-slate-850 to-slate-900 rounded-3xl p-6 sm:p-7 shadow-xl border border-slate-800">
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-slate-800">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest border border-emerald-500/30">
+                          Digital Supporter Channel
+                        </span>
+                        <span className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">
+                          Public Join Links
+                        </span>
+                      </div>
+                      <h3 className="text-xl font-black text-white tracking-tight">
+                        WhatsApp Community & Social Media Recruitment
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-1 max-w-2xl">
+                        Supporters who register online join separately from ground mobilizer quotas. Set your official WhatsApp Community invite link below to welcome them automatically.
+                      </p>
+                    </div>
+
+                    {/* WhatsApp Community Link Setting */}
+                    <div className="bg-black/40 border border-white/10 rounded-2xl p-4 min-w-[280px] sm:min-w-[340px]">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 flex items-center justify-between">
+                        <span>Official WhatsApp Community</span>
+                        <span className="text-emerald-400 font-bold">HQ Verified</span>
+                      </p>
+                      {editingWhatsapp ? (
+                        <div className="space-y-2 mt-2">
+                          <input
+                            type="url"
+                            value={tempWhatsappLink}
+                            onChange={(e) => setTempWhatsappLink(e.target.value)}
+                            placeholder="https://chat.whatsapp.com/..."
+                            className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-emerald-500/50 text-white text-xs focus:outline-none"
+                          />
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={handleSaveWhatsappLink}
+                              disabled={savingWhatsapp}
+                              className="flex-1 py-1.5 px-3 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition disabled:opacity-50"
+                            >
+                              {savingWhatsapp ? "Saving..." : "Save Link"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => { setEditingWhatsapp(false); setTempWhatsappLink(whatsappLink); }}
+                              className="py-1.5 px-3 rounded-lg bg-slate-800 text-slate-300 hover:text-white text-xs font-bold transition"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <p className="text-xs font-mono text-emerald-300 truncate mb-2">
+                            {whatsappLink}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => { setTempWhatsappLink(whatsappLink); setEditingWhatsapp(true); }}
+                            className="text-[11px] font-black text-amber-400 hover:text-amber-300 uppercase tracking-wider flex items-center gap-1"
+                          >
+                            Edit WhatsApp Link →
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Public Share Links & Campaign Channels */}
+                  <div className="pt-6">
+                    <p className="text-[11px] font-black uppercase tracking-widest text-slate-300 mb-3">
+                      Copy Dedicated Recruitment Links:
+                    </p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                      {[
+                        { id: "general", label: "General Join", icon: "🌐", bg: "hover:border-emerald-500/50" },
+                        { id: "tiktok", label: "TikTok Channel", icon: "🎵", bg: "hover:border-pink-500/50" },
+                        { id: "whatsapp", label: "WhatsApp Broadcast", icon: "💬", bg: "hover:border-emerald-500/50" },
+                        { id: "facebook", label: "Facebook Page", icon: "📘", bg: "hover:border-blue-500/50" },
+                        { id: "x", label: "X / Twitter", icon: "𝕏", bg: "hover:border-slate-400/50" },
+                      ].map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => copyShareLink(item.id)}
+                          className={`flex flex-col items-start p-3 rounded-2xl bg-black/30 border border-white/5 ${item.bg} transition text-left group`}
+                        >
+                          <span className="text-xl mb-1">{item.icon}</span>
+                          <span className="text-xs font-bold text-white group-hover:text-amber-300 transition">
+                            {item.label}
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-mono mt-0.5">
+                            /join{item.id === "general" ? "" : `/${item.id}`}
+                          </span>
+                          <span className="text-[9px] font-bold text-emerald-400 mt-2 uppercase tracking-wider">
+                            Click to Copy
+                          </span>
+                        </button>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -1122,20 +1751,37 @@ export default function Admin({ onLogout }) {
                     <div className="divide-y divide-slate-100">
                       {recentMembers.length === 0 ? (
                         <p className="p-6 text-xs text-slate-500 font-bold uppercase tracking-widest text-center">No registrations yet.</p>
-                      ) : recentMembers.map(m => (
-                        <div key={m.id} onClick={() => { setSelectedMember(m); setActiveTab('all'); }} className="px-6 py-3 flex items-center justify-between hover:bg-slate-50 cursor-pointer transition-colors">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs ${m.referred_by ? 'bg-slate-100 text-slate-500' : 'bg-amber-100 text-amber-600'}`}>
-                              {m.referred_by ? <User size={14} /> : <Star size={14} />}
+                      ) : recentMembers.map(m => {
+                        const isDigital = m.source && m.source !== 'field_mobilizer';
+                        return (
+                          <div key={m.id} onClick={() => { setSelectedMember(m); setActiveTab('all'); }} className="px-6 py-3 flex items-center justify-between hover:bg-slate-50 cursor-pointer transition-colors">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs ${
+                                isDigital
+                                  ? 'bg-purple-100 text-purple-600'
+                                  : m.referred_by 
+                                  ? 'bg-slate-100 text-slate-500' 
+                                  : 'bg-amber-100 text-amber-600'
+                              }`}>
+                                {isDigital ? <Megaphone size={14} /> : m.referred_by ? <User size={14} /> : <Star size={14} />}
+                              </div>
+                              <div>
+                                <p className="font-black text-slate-900 text-xs">{m.full_name}</p>
+                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{m.ward}</p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-black text-slate-900 text-xs">{m.full_name}</p>
-                              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{m.ward}</p>
-                            </div>
+                            <p className="text-[10px] font-bold shrink-0">
+                              {isDigital ? (
+                                <span className="text-purple-600 font-bold">Online</span>
+                              ) : m.referred_by ? (
+                                <span className="text-slate-400">Delegate</span>
+                              ) : (
+                                <span className="text-amber-500 font-black">Root</span>
+                              )}
+                            </p>
                           </div>
-                          <p className="text-[10px] text-slate-400 font-bold shrink-0">{m.referred_by ? 'Delegate' : 'Root'}</p>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -1180,6 +1826,187 @@ export default function Admin({ onLogout }) {
                   <TreeNode key={root.id} member={root} onSelectMember={setSelectedMember} />
                 ))}
               </div>
+                        ) : activeTab === "social" ? (
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm flex flex-col animate-in fade-in duration-300">
+                {/* Header & Filter Controls */}
+                <div className="p-5 border-b border-slate-100 bg-slate-50/60 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 text-[10px] font-black uppercase tracking-wider border border-purple-200">
+                          Online Recruitment Channel
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                          {digitalCount} Total Recruits
+                        </span>
+                      </div>
+                      <h3 className="text-xl font-black text-slate-900 tracking-tight">
+                        Social Media & Public Link Supporters
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        These supporters joined online without a field mobilizer and are ready for in-person ward verification.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      {/* Ward Filter */}
+                      <div className="relative min-w-[200px]">
+                        <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-600 pointer-events-none" />
+                        <select
+                          value={wardFilter}
+                          onChange={(e) => {
+                            const newWard = e.target.value;
+                            setWardFilter(newWard);
+                            loadDigitalMembers(searchQuery, newWard, digitalSourceFilter);
+                          }}
+                          className="w-full pl-9 pr-8 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-emerald-500 shadow-sm appearance-none cursor-pointer"
+                        >
+                          <option value="all">📍 All Wards (Laikipia)</option>
+                          {Object.entries(LAIKIPIA_CONSTITUENCIES).map(([constituency, wards]) => (
+                            <optgroup key={constituency} label={constituency} className="font-bold text-slate-900 bg-slate-100">
+                              {wards.map(w => (
+                                <option key={w} value={w}>{w} ({constituency})</option>
+                              ))}
+                            </optgroup>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                      </div>
+
+                      {/* Download Call/SMS Button */}
+                      <button
+                        onClick={handleDownloadCallSmsList}
+                        disabled={exportingCsv}
+                        className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-sm transition disabled:opacity-50"
+                      >
+                        {exportingCsv ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Download size={14} />}
+                        <span>Download Call / SMS List</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Search Bar for Social Recruits */}
+                  <div className="relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                    <input
+                      type="text"
+                      placeholder="SEARCH SOCIAL RECRUITS BY NAME, PHONE, OR ID..."
+                      className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 font-bold text-xs tracking-wider uppercase shadow-sm"
+                      value={searchQuery}
+                      onChange={(e) => {
+                        const q = e.target.value;
+                        setSearchQuery(q);
+                        loadDigitalMembers(q, wardFilter, digitalSourceFilter);
+                      }}
+                    />
+                  </div>
+
+                  {/* Channel Filter Pills */}
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    {[
+                      { id: 'all', label: 'All Channels' },
+                      { id: 'whatsapp', label: '💬 WhatsApp' },
+                      { id: 'tiktok', label: '🎵 TikTok' },
+                      { id: 'facebook', label: '📘 Facebook' },
+                      { id: 'x_twitter', label: '𝕏 Twitter / X' },
+                      { id: 'social_media', label: '🌐 Social Link' }
+                    ].map(ch => (
+                      <button
+                        key={ch.id}
+                        type="button"
+                        onClick={() => {
+                          setDigitalSourceFilter(ch.id);
+                          loadDigitalMembers(searchQuery, wardFilter, ch.id);
+                        }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                          digitalSourceFilter === ch.id
+                            ? 'bg-purple-700 text-white shadow-sm'
+                            : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                        }`}
+                      >
+                        {ch.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* List of Digital Recruits */}
+                <div className="divide-y divide-slate-100 p-4 sm:p-6 space-y-3">
+                  {loadingDigital ? (
+                    <div className="py-12 flex flex-col items-center justify-center text-slate-400">
+                      <div className="w-8 h-8 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin mb-3" />
+                      <p className="text-xs font-bold uppercase tracking-wider">Loading social recruits...</p>
+                    </div>
+                  ) : digitalMembers.length === 0 ? (
+                    <div className="py-16 text-center">
+                      <div className="w-14 h-14 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center mx-auto mb-3">
+                        <Megaphone size={24} />
+                      </div>
+                      <p className="font-black text-slate-800 text-base">No Digital Recruits Found</p>
+                      <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                        Share your public join links on TikTok or WhatsApp to welcome online supporters here!
+                      </p>
+                    </div>
+                  ) : (
+                    digitalMembers.map((m) => {
+                      const isUnassigned = !m.referred_by;
+                      return (
+                        <div
+                          key={m.id}
+                          className="bg-white border border-slate-200 rounded-2xl p-4 hover:border-purple-300 hover:shadow-sm transition flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                        >
+                          <div className="flex items-start gap-3.5 min-w-0">
+                            <div className="w-10 h-10 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0 shadow-sm font-black text-xs">
+                              <User size={18} />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap mb-1">
+                                <h4 className="text-sm font-black text-slate-900">{m.full_name}</h4>
+                                <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-purple-100 text-purple-800 border border-purple-200">
+                                  {m.source}
+                                </span>
+                                {m.volunteer_role && (
+                                  <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                    {m.volunteer_role.replace('_', ' ')}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-slate-500 font-medium">
+                                <strong>{m.ward} Ward</strong> {m.polling_station ? `· ${m.polling_station}` : ''} · ID: {m.national_id || 'N/A'}
+                              </p>
+                              {m.custom_role && (
+                                <p className="text-[11px] text-purple-800 bg-purple-50 rounded-lg px-2.5 py-1 mt-1.5 border border-purple-100 inline-block">
+                                  💡 <strong>Notes:</strong> {m.custom_role}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
+                            {isUnassigned ? (
+                              <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-xl bg-amber-50 text-amber-700 border border-amber-200">
+                                Unassigned Supporter
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                Under: {m.referrer_name || 'Mobilizer'}
+                              </span>
+                            )}
+                            {m.phone && (
+                              <a
+                                href={`tel:${m.phone}`}
+                                className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black flex items-center gap-1.5 shadow-sm transition"
+                              >
+                                <Phone size={13} /> Call
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
             ) : activeTab === "analytics" ? (
               <div className="w-full rounded-3xl bg-white border border-slate-200 shadow-sm relative z-0">
                 <Reports />
@@ -1220,6 +2047,8 @@ export default function Admin({ onLogout }) {
               <div className="w-full rounded-3xl bg-white border border-slate-200 shadow-sm relative z-0">
                 <SmsExport isAdmin={true} />
               </div>
+            ) : activeTab === "diary" ? (
+              <Diary user={currentUser} />
             ) : activeTab === "events" ? (
               <div className="w-full rounded-3xl bg-white border border-slate-200 shadow-sm relative z-0">
                 <Events isAdmin={true} />
@@ -1293,7 +2122,7 @@ export default function Admin({ onLogout }) {
                               2022 Official
                             </div>
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                             <div>
                               <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">National ID</p>
                               <p className="text-xs font-bold text-slate-700">{record.id_number || 'N/A'}</p>
@@ -1343,28 +2172,61 @@ export default function Admin({ onLogout }) {
                         </button>
                       ))}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      {/* Ward Filter Dropdown */}
+                      <div className="relative min-w-[210px]">
+                        <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-600 pointer-events-none" />
+                        <select
+                          value={wardFilter}
+                          onChange={(e) => {
+                            const newWard = e.target.value;
+                            setWardFilter(newWard);
+                            setMemberPage(0);
+                            loadMembersPage(0, searchQuery, voterStatusFilter, newWard);
+                          }}
+                          className="w-full pl-9 pr-8 py-2.5 bg-white border border-slate-200 hover:border-emerald-500 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition shadow-sm appearance-none cursor-pointer"
+                        >
+                          <option value="all">📍 All Wards (Laikipia County)</option>
+                          {Object.entries(LAIKIPIA_CONSTITUENCIES).map(([constituency, wards]) => (
+                            <optgroup key={constituency} label={constituency} className="font-bold text-slate-900 bg-slate-100">
+                              {wards.map(w => (
+                                <option key={w} value={w} className="bg-white text-slate-800 font-normal">
+                                  {w} ({constituency})
+                                </option>
+                              ))}
+                            </optgroup>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                      </div>
+
                       <button 
                         onClick={() => {
                           const newSort = memberSort === "id" ? "voter_status" : "id";
                           setMemberSort(newSort);
                           setMemberPage(0);
-                          loadMembersPage(0, searchQuery, voterStatusFilter);
+                          loadMembersPage(0, searchQuery, voterStatusFilter, wardFilter);
                         }}
-                        className={`px-4 py-3 rounded-2xl border transition-all font-bold text-xs uppercase tracking-widest flex items-center gap-2 ${
-                          memberSort === "voter_status" ? "bg-dcp-green/10 border-dcp-green/30 text-dcp-green" : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"
+                        className={`px-3.5 py-2.5 rounded-xl border transition-all font-bold text-xs uppercase tracking-widest flex items-center gap-2 ${
+                          memberSort === "voter_status" ? "bg-dcp-green/10 border-dcp-green/30 text-dcp-green" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
                         }`}
                       >
-                        <ShieldCheck size={16} /> Sort Verified
+                        <ShieldCheck size={15} /> Sort Verified
                       </button>
+
+                      {/* Download Call / SMS Contact List Button */}
                       <button
-                        onClick={() => {
-                          const data = activeTab === "mobilizers" ? roots : allMembers;
-                          exportToCSV(data, `${activeTab}_export_${new Date().toISOString().split('T')[0]}`);
-                        }}
-                        className="px-4 py-3 rounded-2xl bg-slate-900 text-white font-bold text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-slate-800 transition-colors shadow-lg"
+                        onClick={handleDownloadCallSmsList}
+                        disabled={exportingCsv}
+                        className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-md transition disabled:opacity-50"
+                        title="Download CSV formatted with phone numbers and names to call or text"
                       >
-                        <Download size={16} /> Export
+                        {exportingCsv ? (
+                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Download size={15} />
+                        )}
+                        <span>Download Call / SMS List</span>
                       </button>
                     </div>
                   </div>
@@ -1394,50 +2256,500 @@ export default function Admin({ onLogout }) {
                       const directCount = member.recruits_count || 0;
                       const tier = activeTab === "mobilizers" ? getTierBadge(directCount) : null;
                       const referrerName = activeTab === "all" ? member.referrer_name : null;
+                      const isExpanded = selectedMember?.id === member.id;
+                    const isMemberDigital = member.source && member.source !== 'field_mobilizer';
                     return (
-                      <div
-                        key={member.id}
-                        onClick={() => setSelectedMember(member)}
-                        className={`p-4 transition-all cursor-pointer flex justify-between items-center gap-3 ${selectedMember?.id === member.id ? 'bg-amber-50 border-l-4 border-l-amber-400 pl-3' : 'hover:bg-slate-50'}`}
-                      >
-                        <div className="flex items-center gap-4 min-w-0">
-                          <div className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 shadow-sm ${selectedMember?.id === member.id ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-500'}`}>
-                            {member.referred_by ? <User size={18} /> : <Star size={18} />}
+                      <div key={member.id} className="border-b border-slate-100 last:border-b-0 transition-colors">
+                        <div
+                          onClick={() => setSelectedMember(isExpanded ? null : member)}
+                          className={`p-4 transition-all cursor-pointer flex justify-between items-center gap-3 ${isExpanded ? 'bg-amber-50/70 border-l-4 border-l-amber-500 pl-3' : 'hover:bg-slate-50'}`}
+                        >
+                          <div className="flex items-center gap-4 min-w-0">
+                            <div className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 shadow-sm transition-colors ${
+                              isExpanded 
+                                ? 'bg-amber-400 text-slate-950 font-black' 
+                                : isMemberDigital 
+                                ? 'bg-purple-100 text-purple-700 border border-purple-200' 
+                                : (member.referred_by ? 'bg-slate-100 text-slate-500' : 'bg-amber-100 text-amber-600')
+                            }`}>
+                              {isMemberDigital ? <Megaphone size={18} /> : member.referred_by ? <User size={18} /> : <Star size={18} />}
+                            </div>
+                            <div className="min-w-0">
+                              <h4 className="font-black text-slate-900 flex items-center gap-1.5 truncate">
+                                {member.full_name}
+                                {member.is_voter_verified && (
+                                  <CheckCircle2 
+                                    size={12} 
+                                    className="text-dcp-green shrink-0" 
+                                    title="Verified 2022 Voter"
+                                  />
+                                )}
+                                {member.is_opted_out && (
+                                  <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-rose-100 text-rose-700 border border-rose-200 shrink-0">
+                                    Opted Out
+                                  </span>
+                                )}
+                              </h4>
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 truncate">
+                                {member.ward}
+                                {activeTab === "all" && referrerName && (
+                                  <span className="text-slate-300"> · Under: <span className="text-slate-500">{referrerName}</span></span>
+                                )}
+                                {activeTab === "all" && !member.referred_by && (
+                                  isMemberDigital ? (
+                                    <span className="text-purple-600 font-black">
+                                      {' · '}
+                                      {member.source === 'x_twitter' ? '𝕏 Twitter Supporter' :
+                                       member.source === 'tiktok' ? '🎵 TikTok Supporter' :
+                                       member.source === 'whatsapp' ? '💬 WhatsApp Supporter' :
+                                       member.source === 'facebook' ? '📘 Facebook Supporter' :
+                                       '🌐 Online Supporter'}
+                                    </span>
+                                  ) : (
+                                    <span className="text-amber-500 font-black"> · Root Mobilizer</span>
+                                  )
+                                )}
+                              </p>
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            <h4 className="font-black text-slate-900 flex items-center gap-1.5 truncate">
-                              {member.full_name}
-                              {member.is_voter_verified && (
-                                <CheckCircle2 
-                                  size={12} 
-                                  className="text-dcp-green shrink-0" 
-                                  title="Verified 2022 Voter"
-                                />
-                              )}
-                            </h4>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 truncate">
-                              {member.ward}
-                              {activeTab === "all" && referrerName && (
-                                <span className="text-slate-300"> · Under: <span className="text-slate-500">{referrerName}</span></span>
-                              )}
-                              {activeTab === "all" && !member.referred_by && (
-                                <span className="text-amber-500"> · Root Mobilizer</span>
-                              )}
-                            </p>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {tier && (
+                              <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${tier.bg} ${tier.color}`}>
+                                {tier.name}
+                              </span>
+                            )}
+                            <div className="text-right">
+                              <p className="text-sm font-black text-slate-900">{directCount}</p>
+                              <p className="text-[9px] font-bold text-slate-400 uppercase">recruits</p>
+                            </div>
+                            <div className="text-slate-400 ml-1 p-1 rounded-lg hover:bg-slate-200/60 transition flex items-center">
+                              {isExpanded ? <ChevronDown size={18} className="text-amber-600" /> : <ChevronRight size={18} />}
+                            </div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          {tier && (
-                            <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${tier.bg} ${tier.color}`}>
-                              {tier.name}
-                            </span>
-                          )}
-                          <div className="text-right">
-                            <p className="text-sm font-black text-slate-900">{directCount}</p>
-                            <p className="text-[9px] font-bold text-slate-400 uppercase">recruits</p>
+
+                        {/* Inline Expandable Details Panel */}
+                        {isExpanded && selectedMember && (
+                          <div 
+                            className="bg-slate-50/90 border-t border-slate-200/80 p-4 sm:p-6 space-y-5 animate-in fade-in slide-in-from-top-2 duration-200"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {/* Member Header Bar */}
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200/80">
+                              <div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${
+                                    selectedMember.source && selectedMember.source !== 'field_mobilizer'
+                                      ? 'bg-purple-100 text-purple-800 border border-purple-300'
+                                      : selectedMember.referred_by 
+                                      ? 'bg-slate-200 text-slate-700' 
+                                      : 'bg-amber-100 text-amber-800 border border-amber-300'
+                                  }`}>
+                                    {selectedMember.source && selectedMember.source !== 'field_mobilizer'
+                                      ? (selectedMember.source === 'x_twitter' ? '𝕏 Twitter Supporter' :
+                                         selectedMember.source === 'tiktok' ? '🎵 TikTok Supporter' :
+                                         selectedMember.source === 'whatsapp' ? '💬 WhatsApp Supporter' :
+                                         selectedMember.source === 'facebook' ? '📘 Facebook Supporter' :
+                                         '🌐 Online Recruit')
+                                      : (selectedMember.referred_by ? "Constitutional Delegate" : "⭐ Root Mobilizer")}
+                                  </span>
+                                  {selectedMember.is_voter_verified ? (
+                                    <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+                                      <CheckCircle2 size={11} /> Verified 2022 Voter
+                                    </span>
+                                  ) : (
+                                    <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-slate-200/80 text-slate-600 border border-slate-300">
+                                      Unverified
+                                    </span>
+                                  )}
+                                  {selectedMember.security_rank && selectedMember.security_rank !== 'none' && (
+                                    <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-blue-100 text-blue-800 border border-blue-200 flex items-center gap-1">
+                                      <ShieldCheck size={11} /> {selectedMember.security_rank.replace('_', ' ')}
+                                    </span>
+                                  )}
+                                  {selectedMember.is_opted_out ? (
+                                    <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-rose-100 text-rose-800 border border-rose-300 flex items-center gap-1">
+                                      <AlertCircle size={11} /> Opted Out (STOP)
+                                    </span>
+                                  ) : (
+                                    <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1">
+                                      <CheckCircle2 size={11} /> DPA Active (Consented)
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-slate-500 font-bold mt-1.5 flex items-center gap-1.5 flex-wrap">
+                                  <MapPin size={13} className="text-slate-400 shrink-0" />
+                                  <span>{selectedMember.ward || 'No Ward'}</span>
+                                  {selectedMember.polling_station && <span>· Polling Station: <strong className="text-slate-700">{selectedMember.polling_station}</strong></span>}
+                                </p>
+                              </div>
+
+                              <div className="flex items-center gap-2 flex-wrap self-start sm:self-center">
+                                {selectedMember.phone && (
+                                  <a
+                                    href={`tel:${selectedMember.phone}`}
+                                    className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition"
+                                  >
+                                    <Phone size={13} /> Call
+                                  </a>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const link = `${window.location.origin}/?ref=${selectedMember.id}`;
+                                    navigator.clipboard.writeText(link);
+                                    toast.success("Referral link copied to clipboard!");
+                                  }}
+                                  className="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition shadow-sm"
+                                  title="Copy Referral Link"
+                                >
+                                  <Link2 size={13} /> Copy Link
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedMember(null)}
+                                  className="px-3 py-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-200/80 text-xs font-bold transition flex items-center gap-1"
+                                  title="Close details"
+                                >
+                                  <X size={14} /> Close
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Metrics & Info 4-Card Grid */}
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Direct Recruits</p>
+                                <p className="text-2xl font-black text-slate-900">{selectedMemberDirectCount ?? member.recruits_count ?? 0}</p>
+                              </div>
+                              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Downline</p>
+                                <p className="text-2xl font-black text-slate-900">{selectedMemberNetworkSize ?? 0}</p>
+                              </div>
+                              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">National ID</p>
+                                <p className="text-sm font-black text-slate-800 truncate">{selectedMember.national_id || 'N/A'}</p>
+                              </div>
+                              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Phone Number</p>
+                                <p className="text-sm font-black text-slate-800 truncate">{selectedMember.phone || 'N/A'}</p>
+                              </div>
+                            </div>
+
+                            {/* Role Management & Referral Lineage */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                              {/* Role & Security Assignment */}
+                              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                                  <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-600 flex items-center gap-1.5">
+                                    <ShieldCheck size={14} className="text-dcp-green" /> Role & Security Management
+                                  </p>
+                                </div>
+                                <div>
+                                  <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Security Rank</label>
+                                  <select 
+                                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold p-2.5 rounded-xl focus:border-dcp-green focus:bg-white outline-none transition"
+                                    value={selectedMember.security_rank || 'none'}
+                                    onChange={(e) => {
+                                      const rankVal = e.target.value;
+                                      api.updateMemberRole(selectedMember.id, { security_rank: rankVal })
+                                        .then(() => {
+                                          toast.success('Rank updated');
+                                          setSelectedMember(prev => ({ ...prev, security_rank: rankVal }));
+                                          setRoots(prev => prev.map(m => m.id === selectedMember.id ? { ...m, security_rank: rankVal } : m));
+                                          setAllMembers(prev => prev.map(m => m.id === selectedMember.id ? { ...m, security_rank: rankVal } : m));
+                                        });
+                                    }}
+                                  >
+                                    <option value="none">Standard Member (No Rank)</option>
+                                    <option value="guard">Guard</option>
+                                    <option value="station_commander">Station Commander</option>
+                                    <option value="ward_commander">Ward Commander</option>
+                                  </select>
+                                </div>
+
+                                {selectedMember.security_rank && selectedMember.security_rank !== 'none' && (
+                                  <div className="space-y-3 pt-1">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                      <div>
+                                        <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Deploy Ward</label>
+                                        <select
+                                          className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold p-2.5 rounded-xl focus:border-dcp-green focus:bg-white outline-none transition"
+                                          value={selectedMember.ward || ''}
+                                          onChange={(e) => {
+                                            const wardVal = e.target.value;
+                                            api.updateMemberRole(selectedMember.id, { ward: wardVal, polling_station: '' })
+                                              .then(() => {
+                                                toast.success('Deployed to ' + wardVal);
+                                                setSelectedMember(prev => ({ ...prev, ward: wardVal, polling_station: '' }));
+                                                setRoots(prev => prev.map(m => m.id === selectedMember.id ? { ...m, ward: wardVal, polling_station: '' } : m));
+                                                setAllMembers(prev => prev.map(m => m.id === selectedMember.id ? { ...m, ward: wardVal, polling_station: '' } : m));
+                                              });
+                                          }}
+                                        >
+                                          <option value="">-- Select Ward --</option>
+                                          {wardStationMap && Object.keys(wardStationMap).map(ward => (
+                                            <option key={ward} value={ward}>{ward}</option>
+                                          ))}
+                                        </select>
+                                      </div>
+
+                                      <div>
+                                        <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Deploy Station</label>
+                                        <select
+                                          className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold p-2.5 rounded-xl focus:border-dcp-green focus:bg-white outline-none transition"
+                                          value={selectedMember.polling_station || ''}
+                                          disabled={!selectedMember.ward || selectedMember.security_rank === 'ward_commander'}
+                                          onChange={(e) => {
+                                            const stVal = e.target.value;
+                                            api.updateMemberRole(selectedMember.id, { polling_station: stVal })
+                                              .then(() => {
+                                                toast.success('Deployed to ' + stVal);
+                                                setSelectedMember(prev => ({ ...prev, polling_station: stVal }));
+                                                setRoots(prev => prev.map(m => m.id === selectedMember.id ? { ...m, polling_station: stVal } : m));
+                                                setAllMembers(prev => prev.map(m => m.id === selectedMember.id ? { ...m, polling_station: stVal } : m));
+                                              });
+                                          }}
+                                        >
+                                          <option value="">-- Select Station --</option>
+                                          {selectedMember.ward && wardStationMap && 
+                                            (wardStationMap[selectedMember.ward] || []).map(s => (
+                                            <option key={s} value={s}>{s}</option>
+                                          ))}
+                                        </select>
+                                      </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200">
+                                      <div>
+                                        <p className="text-xs font-bold text-slate-800">Security Only Mode</p>
+                                        <p className="text-[10px] text-slate-400">Hides campaign tools for this user</p>
+                                      </div>
+                                      <button 
+                                        type="button"
+                                        onClick={() => {
+                                          const newVal = !selectedMember.is_security_only;
+                                          api.updateMemberRole(selectedMember.id, { is_security_only: newVal })
+                                            .then(() => {
+                                              toast.success(newVal ? 'Locked to security only' : 'Campaign tools enabled');
+                                              setSelectedMember(prev => ({ ...prev, is_security_only: newVal }));
+                                              setRoots(prev => prev.map(m => m.id === selectedMember.id ? { ...m, is_security_only: newVal } : m));
+                                              setAllMembers(prev => prev.map(m => m.id === selectedMember.id ? { ...m, is_security_only: newVal } : m));
+                                            });
+                                        }}
+                                        className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer ${selectedMember.is_security_only ? 'bg-dcp-green' : 'bg-slate-300'}`}
+                                      >
+                                        <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all shadow-sm ${selectedMember.is_security_only ? 'left-7' : 'left-1'}`} />
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+
+                            {/* Kenya DPA 2019 Right to Erasure / Opt-Out Controls */}
+                            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                              <div className="flex items-center justify-between pb-2 border-b border-slate-100 flex-wrap gap-2">
+                                <div className="flex items-center gap-2">
+                                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                                    selectedMember.is_opted_out ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'
+                                  }`}>
+                                    <ShieldCheck size={16} />
+                                  </div>
+                                  <div>
+                                    <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-900 flex items-center gap-2">
+                                      Kenya DPA 2019 Consent Management
+                                    </h4>
+                                    <p className="text-[10px] text-slate-400 font-bold">Section 34 & 40 Compliance (Right to Erasure / Stop Communications)</p>
+                                  </div>
+                                </div>
+                                <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                                  selectedMember.is_opted_out 
+                                    ? 'bg-rose-100 text-rose-800 border border-rose-200' 
+                                    : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                }`}>
+                                  {selectedMember.is_opted_out ? 'Opted Out (STOP)' : 'Consent Active'}
+                                </span>
+                              </div>
+
+                              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-1">
+                                <div className="text-xs text-slate-600 space-y-0.5">
+                                  <p className="font-bold text-slate-800">
+                                    {selectedMember.is_opted_out
+                                      ? 'Supporter has revoked messaging consent'
+                                      : 'Supporter has active statutory consent on file'}
+                                  </p>
+                                  <p className="text-[11px] text-slate-400">
+                                    {selectedMember.is_opted_out
+                                      ? `Marked opted-out on ${selectedMember.opted_out_at ? new Date(selectedMember.opted_out_at).toLocaleDateString() : 'Record'}. Excluded from Bulk SMS exports.`
+                                      : 'Eligible to receive campaign mobilization SMS broadcasts and phone calls.'}
+                                  </p>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    try {
+                                      const res = await api.toggleMemberOptOut(selectedMember.id);
+                                      const updated = res.data || res;
+                                      toast.success(updated.is_opted_out ? 'Member marked as Opted-Out (STOP)' : 'Member opt-in consent restored');
+                                      setSelectedMember(prev => ({ ...prev, is_opted_out: updated.is_opted_out, opted_out_at: updated.opted_out_at }));
+                                      setRoots(prev => prev.map(m => m.id === selectedMember.id ? { ...m, is_opted_out: updated.is_opted_out, opted_out_at: updated.opted_out_at } : m));
+                                      setAllMembers(prev => prev.map(m => m.id === selectedMember.id ? { ...m, is_opted_out: updated.is_opted_out, opted_out_at: updated.opted_out_at } : m));
+                                    } catch (err) {
+                                      toast.error('Failed to toggle opt-out status');
+                                    }
+                                  }}
+                                  className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition shrink-0 ${
+                                    selectedMember.is_opted_out
+                                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm'
+                                      : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300'
+                                  }`}
+                                >
+                                  {selectedMember.is_opted_out ? 'Restore Consent (Opt In)' : 'Record Opt-Out (STOP)'}
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Direct Invitees & Recruits Drilldown */}
+                            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                              <div className="flex items-center justify-between pb-2 border-b border-slate-100 flex-wrap gap-2">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                                    <Users size={16} />
+                                  </div>
+                                  <div>
+                                    <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-900 flex items-center gap-2">
+                                      Direct Invitees & Recruits
+                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800">
+                                        {selectedMemberDirectCount ?? member.recruits_count ?? 0}
+                                      </span>
+                                    </h4>
+                                    <p className="text-[10px] text-slate-400 font-bold mt-0.5">
+                                      {(selectedMemberDirectCount ?? member.recruits_count ?? 0) > 0 
+                                        ? `Tap arrow to explore invitees recruited by ${selectedMember.full_name}`
+                                        : "No recruits registered under this member yet"}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                {(selectedMemberDirectCount ?? member.recruits_count ?? 0) > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={toggleMainMemberInvitees}
+                                    className={`px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition ${
+                                      showMainInvitees
+                                        ? 'bg-amber-500 text-slate-950 font-black shadow-md shadow-amber-500/20'
+                                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                                    }`}
+                                  >
+                                    <span>{showMainInvitees ? "Hide Invitees" : `View ${selectedMemberDirectCount ?? member.recruits_count ?? 0} Invitees`}</span>
+                                    {loadingMainInvitees ? (
+                                      <div className="w-3.5 h-3.5 border-2 border-slate-700 border-t-transparent rounded-full animate-spin" />
+                                    ) : showMainInvitees ? (
+                                      <ChevronDown size={15} />
+                                    ) : (
+                                      <ChevronRight size={15} />
+                                    )}
+                                  </button>
+                                )}
+                              </div>
+
+                              {(selectedMemberDirectCount ?? member.recruits_count ?? 0) === 0 ? (
+                                <div className="p-4 rounded-xl bg-slate-50 border border-dashed border-slate-200 text-center">
+                                  <p className="text-xs font-bold text-slate-500">This member currently has 0 direct invitees.</p>
+                                  <p className="text-[10px] text-slate-400 mt-1">Copy and share their referral link above to recruit under their line.</p>
+                                </div>
+                              ) : (
+                                showMainInvitees && (
+                                  <div className="space-y-2.5 pt-1">
+                                    {loadingMainInvitees ? (
+                                      <div className="py-6 text-center">
+                                        <div className="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Loading direct invitees...</p>
+                                      </div>
+                                    ) : mainInvitees.length === 0 ? (
+                                      <div className="p-4 rounded-xl bg-slate-50 text-center">
+                                        <p className="text-xs font-bold text-slate-500">No invitee records found in database.</p>
+                                      </div>
+                                    ) : (
+                                      <div className="space-y-2">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">
+                                          Tap any invitee below to view details and drill into their downline:
+                                        </p>
+                                        {mainInvitees.map(inv => (
+                                          <InviteeNode
+                                            key={inv.id}
+                                            member={inv}
+                                            depth={1}
+                                            wardStationMap={wardStationMap}
+                                            onPromoteToRoot={handlePromoteToRoot}
+                                          />
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                )
+                              )}
+                            </div>
+
+                              {/* Referral Lineage */}
+                              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3 flex flex-col justify-between">
+                                <div>
+                                  <div className="flex items-center justify-between pb-2 border-b border-slate-100 mb-3">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-600 flex items-center gap-1.5">
+                                      <Network size={14} className="text-slate-500" /> Referral Lineage
+                                    </p>
+                                    <span className="text-[10px] font-bold text-slate-400">
+                                      {selectedMember.referred_by ? `Tier ${selectedMemberTier || 1}` : "Root Tier"}
+                                    </span>
+                                  </div>
+                                  
+                                  <div className="space-y-2">
+                                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between text-xs">
+                                      <div>
+                                        <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Invited By</p>
+                                        <p className="font-bold text-slate-800">
+                                          {directInviter ? directInviter.full_name : selectedMember.referrer_name || (selectedMember.referred_by ? "Delegate Referrer" : "Direct Party Registration (Root)")}
+                                        </p>
+                                        {directInviter && (
+                                          <p className="text-[10px] text-slate-500">{directInviter.ward} · {directInviter.polling_station}</p>
+                                        )}
+                                      </div>
+                                      <span className="px-2 py-0.5 bg-white border border-slate-200 rounded text-[9px] font-black uppercase text-slate-600">
+                                        {selectedMember.referred_by ? `Depth ${selectedMemberDepth || 1}` : "Root"}
+                                      </span>
+                                    </div>
+
+                                    {topMobilizer && topMobilizer.id !== selectedMember.id && (
+                                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between text-xs">
+                                        <div>
+                                          <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Root Mobilizer</p>
+                                          <p className="font-bold text-slate-800">{topMobilizer.full_name}</p>
+                                          <p className="text-[10px] text-slate-500">{topMobilizer.ward} · {topMobilizer.polling_station}</p>
+                                        </div>
+                                        <span className="px-2 py-0.5 bg-amber-100 text-amber-800 border border-amber-200 rounded text-[9px] font-black uppercase">
+                                          Top of Chain
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {selectedMember.referred_by && (
+                                  <div className="pt-2">
+                                    <button 
+                                      type="button"
+                                      onClick={handlePromoteToRoot}
+                                      className="w-full py-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-xl text-amber-800 font-black text-[10px] uppercase tracking-widest transition flex items-center justify-center gap-2"
+                                    >
+                                      <Star size={14} className="text-amber-500" /> Promote to Root Mobilizer
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                          <ChevronRight size={16} className="text-slate-300 ml-1" />
-                        </div>
+                        )}
                       </div>
                     );
                   })}
@@ -1462,194 +2774,6 @@ export default function Admin({ onLogout }) {
               </div>
             )}
           </div>
-
-          {/* Right Panel: Intelligence Profile */}
-          <AnimatePresence>
-            {selectedMember && (
-              <motion.div 
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                className="w-full md:w-[400px] shrink-0"
-              >
-                <div className="bg-slate-900 rounded-3xl border border-slate-800 shadow-2xl overflow-hidden flex flex-col relative sticky top-6 max-h-[calc(100vh-3rem)]">
-                  <div className="absolute top-0 right-0 w-2/3 h-full pointer-events-none opacity-20 z-0">
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_100%_0%,rgba(0,132,61,0.5)_0%,transparent_70%)]" />
-                  </div>
-                  <div className="p-6 border-b border-slate-800 z-10 flex justify-between items-center shrink-0">
-                    <h3 className="text-white font-black uppercase tracking-widest flex items-center gap-2">
-                      <Database size={18} className="text-dcp-green" />
-                      Intelligence Profile
-                    </h3>
-                    <button onClick={() => setSelectedMember(null)} className="p-2 bg-white/10 hover:bg-white/20 rounded-xl text-white">
-                      <X size={16} />
-                    </button>
-                  </div>
-                  <div className="p-6 z-10 space-y-8 overflow-y-auto custom-scrollbar flex-1">
-                    <div>
-                      <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center text-white mb-4 border border-white/5">
-                        {selectedMember.referred_by ? <User size={32} /> : <Star size={32} className="text-amber-400" />}
-                      </div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="text-dcp-green text-[10px] font-black uppercase tracking-[0.2em]">
-                          {selectedMember.referred_by ? "Constitutional Delegate" : "Root Mobilizer"}
-                        </p>
-                        {selectedMember.is_voter_verified && (
-                          <span className="bg-dcp-green/10 text-dcp-green text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-dcp-green/20 flex items-center gap-1">
-                            <CheckCircle2 size={8} /> Verified Voter
-                          </span>
-                        )}
-                      </div>
-                      <h2 className="text-2xl font-black text-white italic tracking-tight">{selectedMember.full_name}</h2>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-black/40 border border-white/5 rounded-2xl p-4">
-                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Direct Children</p>
-                        <p className="text-2xl font-black text-white">{selectedMemberDirectCount}</p>
-                      </div>
-                      <div className="bg-black/40 border border-white/5 border-l-dcp-green/50 rounded-2xl p-4">
-                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Total Downline</p>
-                        <p className="text-2xl font-black text-white">{selectedMemberNetworkSize}</p>
-                      </div>
-                    </div>
-
-                    <div className="pt-6 border-t border-slate-800 space-y-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em]">Role Management</p>
-                      </div>
-                      <div className="space-y-3">
-                        <select 
-                          className="w-full bg-slate-950 border border-slate-800 text-white text-xs font-bold p-3 rounded-xl focus:border-dcp-green outline-none"
-                          value={selectedMember.security_rank || 'none'}
-                          onChange={(e) => {
-                            api.updateMemberRole(selectedMember.id, { security_rank: e.target.value })
-                              .then(() => {
-                                toast.success('Rank updated');
-                                setSelectedMember({...selectedMember, security_rank: e.target.value});
-                              });
-                          }}
-                        >
-                          <option value="none">Standard Member (No Rank)</option>
-                          <option value="guard">Guard</option>
-                          <option value="station_commander">Station Commander</option>
-                          <option value="ward_commander">Ward Commander</option>
-                        </select>
-                        
-                        {(selectedMember.security_rank && selectedMember.security_rank !== 'none') && (
-                          <>
-                            <div className="grid grid-cols-2 gap-2">
-                              <select
-                                className="w-full bg-slate-950 border border-slate-800 text-slate-400 text-[10px] font-bold p-3 rounded-xl outline-none"
-                                value={selectedMember.ward || ''}
-                                onChange={(e) => {
-                                  api.updateMemberRole(selectedMember.id, { ward: e.target.value, polling_station: '' })
-                                    .then(() => {
-                                      toast.success('Deployed to ' + e.target.value);
-                                      setSelectedMember({...selectedMember, ward: e.target.value, polling_station: ''});
-                                    });
-                                }}
-                              >
-                                <option value="">-- Deploy Ward --</option>
-                                {wardStationMap && Object.keys(wardStationMap).map(ward => (
-                                  <option key={ward} value={ward}>{ward}</option>
-                                ))}
-                              </select>
-
-                              <select
-                                className="w-full bg-slate-950 border border-slate-800 text-slate-400 text-[10px] font-bold p-3 rounded-xl outline-none"
-                                value={selectedMember.polling_station || ''}
-                                disabled={!selectedMember.ward || selectedMember.security_rank === 'ward_commander'}
-                                onChange={(e) => {
-                                  api.updateMemberRole(selectedMember.id, { polling_station: e.target.value })
-                                    .then(() => {
-                                      toast.success('Deployed to ' + e.target.value);
-                                      setSelectedMember({...selectedMember, polling_station: e.target.value});
-                                    });
-                                }}
-                              >
-                                <option value="">-- Deploy Station --</option>
-                                {selectedMember.ward && wardStationMap && 
-                                 (wardStationMap[selectedMember.ward] || []).map(s => (
-                                  <option key={s} value={s}>{s}</option>
-                                ))}
-                              </select>
-                            </div>
-                            
-                            <div className="flex items-center justify-between bg-black/40 p-3 rounded-xl border border-white/5">
-                              <div>
-                                <p className="text-xs font-bold text-white">Security Only Mode</p>
-                                <p className="text-[9px] text-slate-500">Hides campaign tools</p>
-                              </div>
-                              <button 
-                                onClick={() => {
-                                  const newVal = !selectedMember.is_security_only;
-                                  api.updateMemberRole(selectedMember.id, { is_security_only: newVal })
-                                    .then(() => {
-                                      toast.success(newVal ? 'Locked to security only' : 'Campaign tools enabled');
-                                      setSelectedMember({...selectedMember, is_security_only: newVal});
-                                    });
-                                }}
-                                className={`w-12 h-6 rounded-full transition-colors relative ${selectedMember.is_security_only ? 'bg-dcp-green' : 'bg-slate-700'}`}
-                              >
-                                <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${selectedMember.is_security_only ? 'left-7' : 'left-1'}`} />
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="pt-6 border-t border-slate-800 space-y-4">
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em] mb-3">Referral Lineage</p>
-                      <div className="grid gap-3">
-                        <LineageCard
-                          label="Invited By"
-                          title={directInviter ? directInviter.full_name : "No referrer / Root"}
-                          subtitle={directInviter ? `${directInviter.ward} · ${directInviter.polling_station}` : "Root Level Setup"}
-                          badge={`Tier ${getTierValue(directInviter)}`}
-                        />
-                        <LineageCard
-                          label="Current Tier Placement"
-                          title={`Tier ${selectedMemberTier}`}
-                          subtitle={`Depth ${selectedMemberDepth}`}
-                          badge={`Lineage: ${selectedMemberLineage.length} steps`}
-                        />
-                        {topMobilizer && topMobilizer.id !== selectedMember.id && (
-                          <LineageCard
-                            label="Root Mobilizer"
-                            title={topMobilizer.full_name}
-                            subtitle={`${topMobilizer.ward} · ${topMobilizer.polling_station}`}
-                            badge="Root"
-                            meta="Top of lineage chain"
-                          />
-                        )}
-                      </div>
-                      {selectedMember.referred_by && (
-                        <div className="mt-4">
-                          <button 
-                            onClick={handlePromoteToRoot}
-                            className="w-full py-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-xl text-amber-500 font-black text-[10px] uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
-                          >
-                            <Star size={14} /> Promote to Root Mobilizer
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="space-y-4 pt-4 border-t border-slate-800">
-                      <InfoRow icon={<Smartphone size={16} />} label="Phone" value={selectedMember.phone} />
-                      <InfoRow icon={<Mail size={16} />} label="Email" value={selectedMember.email} />
-                      <InfoRow icon={<Hash size={16} />} label="National ID" value={selectedMember.national_id} />
-                      <InfoRow icon={<MapPin size={16} />} label="Ward" value={selectedMember.ward} />
-                      <InfoRow icon={<MapPin size={16} />} label="Polling" value={selectedMember.polling_station} />
-                      <InfoRow icon={<User size={16} />} label="Y.O.B" value={selectedMember.yob} />
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </main>
       </div>
 
@@ -1659,13 +2783,14 @@ export default function Admin({ onLogout }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+            onClick={(e) => { if (e.target === e.currentTarget) setShowSecurityModal(false); }}
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="bg-white rounded-3xl shadow-2xl max-w-xl w-full overflow-hidden max-h-[90vh] flex flex-col"
+              className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden max-h-[90vh] flex flex-col my-auto mx-auto"
             >
               <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
                 <div>
@@ -1694,7 +2819,7 @@ export default function Admin({ onLogout }) {
                     <input name="national_id" placeholder="ID Number" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-blue-500 transition" />
                     <input name="phone" placeholder="Phone Number" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-blue-500 transition" />
                     
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <select name="security_rank" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-blue-500 transition" onChange={(e) => {
                          const sSelect = document.getElementById('sec_station_select');
                          if (e.target.value === 'ward_commander') {

@@ -1,3 +1,4 @@
+import { useLanguage } from '../contexts/LanguageContext';
 import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -10,6 +11,7 @@ import { useSync } from "../contexts/SyncContext";
 
 // Steps: 'lookup' | 'form' | 'success'
 export default function Enrollment({ memberId }) {
+  const { t } = useLanguage();
   const [step, setStep] = useState('lookup');
   const [prefill, setPrefill] = useState(null);
   const [selectedVoter, setSelectedVoter] = useState(null);
@@ -81,7 +83,7 @@ export default function Enrollment({ memberId }) {
             {!navigator.onLine && (
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-xl">
                 <WifiOff className="w-3.5 h-3.5 text-amber-500" />
-                <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Offline Mode</span>
+                <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">{t('offline_mode')}</span>
               </div>
             )}
             {/* Offline queue badge */}
@@ -138,7 +140,7 @@ export default function Enrollment({ memberId }) {
                   <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-900 mb-6 font-black uppercase italic tracking-widest text-[10px]">
                     DCP
                   </div>
-                  <h4 className="text-lg font-black text-slate-900 tracking-tight mb-2 uppercase">Your Personal QR</h4>
+                  <h4 className="text-lg font-black text-slate-900 tracking-tight mb-2 uppercase">{t('enroll_your_qr')}</h4>
                   <p className="text-slate-500 text-[11px] font-medium mb-8 leading-relaxed">
                     Show this to the person you are recruiting for instant enrollment on their device.
                   </p>
@@ -153,8 +155,8 @@ export default function Enrollment({ memberId }) {
                       <Share2 size={20} />
                     </div>
                     <div>
-                      <h4 className="text-sm font-black uppercase tracking-widest">Fast Share</h4>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Send link via WhatsApp</p>
+                      <h4 className="text-sm font-black uppercase tracking-widest">{t('enroll_fast_share')}</h4>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t('enroll_send_whatsapp')}</p>
                     </div>
                   </div>
 
@@ -181,7 +183,7 @@ export default function Enrollment({ memberId }) {
                         onClick={copyToClipboard}
                         className="bg-white/10 text-white py-3.5 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 hover:bg-white/20 transition-colors border border-white/10"
                       >
-                        <Copy size={16} /> Copy Link
+                        <Copy size={16} /> {t('enroll_copy_link')}
                       </button>
                     </div>
                   </div>
@@ -209,7 +211,7 @@ export default function Enrollment({ memberId }) {
                 <div className="mb-6 flex items-center gap-3 p-4 bg-dcp-green/10 border border-dcp-green/20 rounded-2xl">
                   <CheckCircle2 className="w-5 h-5 text-dcp-green shrink-0" />
                   <div>
-                    <p className="text-xs font-black text-dcp-green uppercase tracking-widest">Voter Confirmed in 2022 Register</p>
+                    <p className="text-xs font-black text-dcp-green uppercase tracking-widest">{t('enroll_voter_confirmed')}</p>
                     <p className="text-sm font-bold text-slate-700 mt-0.5">{selectedVoter.full_name} · {selectedVoter.ward}</p>
                   </div>
                 </div>
@@ -243,17 +245,17 @@ export default function Enrollment({ memberId }) {
 
               <div className="space-y-2">
                 <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight italic">
-                  {lastEnrolled?.offline ? 'Saved Offline!' : 'Successfully Enrolled!'}
+                  {lastEnrolled?.offline ? t('enroll_saved_offline') : t('enroll_step_success')}
                 </h2>
                 <p className="text-slate-500 font-bold text-sm uppercase tracking-widest">
                   {lastEnrolled?.offline
-                    ? 'Will auto-sync to HQ when internet returns'
-                    : 'Database entry confirmed for HQ Audit.'}
+                    ? t('enroll_sync_desc')
+                    : t('enroll_confirmed_desc')}
                 </p>
               </div>
 
               <div className="bg-slate-50 rounded-3xl p-8 border border-slate-100 text-left max-w-sm mx-auto">
-                <p className="text-[10px] uppercase tracking-widest text-slate-400 font-black mb-4 border-b border-slate-200 pb-2">New Member Details</p>
+                <p className="text-[10px] uppercase tracking-widest text-slate-400 font-black mb-4 border-b border-slate-200 pb-2">{t('enroll_new_member_details')}</p>
                 <div className="space-y-4">
                   <div>
                     <label className="text-[9px] font-black text-slate-400 uppercase block">Full Name</label>
@@ -271,13 +273,13 @@ export default function Enrollment({ memberId }) {
                   onClick={resetAll}
                   className="px-8 py-5 bg-dcp-green text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs shadow-lg shadow-dcp-green/20 hover:bg-dcp-green/90 transition-all flex items-center justify-center gap-3"
                 >
-                  <UserPlus size={18} /> Enrol Next Person
+                  <UserPlus size={18} /> {t('enroll_next_person')}
                 </button>
                 <button
                   onClick={() => navigate('/dashboard')}
                   className="px-8 py-5 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs shadow-lg hover:bg-slate-800 transition-all flex items-center justify-center gap-3"
                 >
-                  <ArrowRight size={18} /> Finish & View Stats
+                  <ArrowRight size={18} /> {t('enroll_finish_stats')}
                 </button>
               </div>
             </motion.div>

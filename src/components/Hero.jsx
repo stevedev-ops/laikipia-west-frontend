@@ -4,18 +4,18 @@ void motion;
 
 export default function Hero() {
   return (
-    <div className="relative w-full pt-10 pb-16 overflow-hidden bg-white border-b border-slate-100">
+    <div className="relative w-full pt-3 pb-4 sm:pt-8 sm:pb-10 overflow-hidden bg-white border-b border-slate-100">
       <div className="max-w-7xl mx-auto px-4 text-center relative z-10">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8, cubicBezier: [0.16, 1, 0.3, 1] }}
-          className="mb-4 max-h-32 md:max-h-44 overflow-hidden flex items-center justify-center p-0"
+          className="mb-2 max-h-24 sm:max-h-32 md:max-h-44 overflow-hidden flex items-center justify-center p-0"
         >
           <img 
             src={logo} 
             alt="Democracy for Citizens Party Official Logo" 
-            className="w-48 md:w-64 object-contain pointer-events-none drop-shadow-sm scale-[1.3] translate-y-2" 
+            className="w-32 sm:w-48 md:w-64 object-contain pointer-events-none drop-shadow-sm scale-[1.1] sm:scale-[1.2] translate-y-1" 
           />
         </motion.div>
 
@@ -23,22 +23,22 @@ export default function Hero() {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.6 }}
-          className="max-w-3xl mx-auto space-y-4"
+          className="max-w-3xl mx-auto space-y-2 sm:space-y-3"
         >
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-200 text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-2">
             <div className="w-1.5 h-1.5 rounded-full bg-dcp-green" />
             Official Member Enrollment Portal
           </div>
           
-          <h1 className="text-4xl md:text-6xl font-black text-slate-900 tracking-tight leading-[1.1]">
-            Build the Future of <span className="text-dcp-green">Ol Kalou</span> With Us
+          <h1 className="text-xl sm:text-3xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight">
+            Build the Future of <span className="text-dcp-green">Laikipia</span> With Us
           </h1>
           
-          <p className="text-lg text-slate-500 font-medium leading-relaxed max-w-2xl mx-auto pt-2">
+          <p className="text-xs sm:text-sm md:text-base text-slate-500 font-medium leading-normal max-w-2xl mx-auto pt-1">
             Join the Democracy for Citizens Party (DCP) and help us build a network of change, guided by H.E. Rigathi Gachagua.
           </p>
 
-          <div className="pt-8 flex flex-wrap items-center justify-center gap-6">
+          <div className="pt-3 sm:pt-6 flex flex-wrap items-center justify-center gap-3 sm:gap-6">
              <div className="flex items-center gap-2 group">
                 <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center border border-slate-200 group-hover:bg-dcp-green/5 group-hover:border-dcp-green/30 transition-all">
                    <div className="w-1.5 h-1.5 rounded-full bg-dcp-green" />

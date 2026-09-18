@@ -1,8 +1,10 @@
+import { useLanguage } from '../contexts/LanguageContext';
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
 import LoginForm from "../components/LoginForm";
 
 export default function Login({ onLogin }) {
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   return (
@@ -12,8 +14,8 @@ export default function Login({ onLogin }) {
           <div className="w-16 h-16 rounded-2xl bg-white p-3 shadow-xl mb-4">
             <img src={logo} alt="DCP" className="w-full h-full object-contain mix-blend-multiply" />
           </div>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-dcp-green mb-1">Democracy for Citizens Party</p>
-          <h1 className="text-2xl font-black text-white">Member Login</h1>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-dcp-green mb-1">{t('login_party')}</p>
+          <h1 className="text-2xl font-black text-white">{t('login_title')}</h1>
         </div>
 
         <LoginForm 

@@ -1,22 +1,62 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
+import { cryptoVault } from '../lib/cryptoVault';
 
 const SyncContext = createContext(null);
 const QUEUE_KEY = 'dcp_offline_queue';
 
+// Synchronous fast-read for initial state, with fallback
 export function getOfflineQueue() {
-  try { return JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]'); }
-  catch { return []; }
+  try {
+    const raw = localStorage.getItem(`dcp_vault_${QUEUE_KEY}`) || localStorage.getItem(QUEUE_KEY);
+    if (!raw) return [];
+    if (!raw.startsWith('enc:')) {
+      return JSON.parse(raw);
+    }
+    // Encrypted payloads are read asynchronously in provider
+    return [];
+  } catch {
+    return [];
+  }
 }
 
 export function SyncProvider({ children }) {
-  const [offlineCount, setOfflineCount] = useState(() => getOfflineQueue().length);
+  const [offlineCount, setOfflineCount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
+  // Load encrypted queue securely
+  const loadVaultQueue = useCallback(async () => {
+    try {
+      const encryptedQueue = await cryptoVault.getItem(QUEUE_KEY);
+      if (encryptedQueue && Array.isArray(encryptedQueue)) {
+        setOfflineCount(encryptedQueue.length);
+        return encryptedQueue;
+      }
+      // Migrate legacy plaintext queue if any
+      const legacyRaw = localStorage.getItem(QUEUE_KEY);
+      if (legacyRaw) {
+        const parsed = JSON.parse(legacyRaw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          await cryptoVault.setItem(QUEUE_KEY, parsed);
+          localStorage.removeItem(QUEUE_KEY);
+          setOfflineCount(parsed.length);
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn("Error loading vault queue:", e);
+    }
+    return [];
+  }, []);
+
+  useEffect(() => {
+    loadVaultQueue();
+  }, [loadVaultQueue]);
+
   const syncOfflineQueue = useCallback(async () => {
-    const queue = getOfflineQueue();
+    const queue = await loadVaultQueue();
     if (!queue.length || isSyncing || !navigator.onLine) return;
     
     setIsSyncing(true);
@@ -24,8 +64,7 @@ export function SyncProvider({ children }) {
     const failed = [];
     
     for (const payload of queue) {
-      // Simulate slight delay to prevent hammering backend
-      await new Promise(r => setTimeout(r, 500));
+      await new Promise(r => setTimeout(r, 400));
       
       const { data, error } = await api.register(payload, payload.invite_token);
       if (!error && data && !data.offline) {
@@ -36,26 +75,28 @@ export function SyncProvider({ children }) {
     }
 
     if (failed.length === 0) {
+      cryptoVault.removeItem(QUEUE_KEY);
       localStorage.removeItem(QUEUE_KEY);
     } else {
-      localStorage.setItem(QUEUE_KEY, JSON.stringify(failed));
+      await cryptoVault.setItem(QUEUE_KEY, failed);
     }
     
     setOfflineCount(failed.length);
     setIsSyncing(false);
     
     if (successCount > 0) {
-      toast.success(`✅ Synced ${successCount} offline recruit${successCount !== 1 ? 's' : ''} to HQ!`);
+      toast.success(`✅ Securely synced ${successCount} offline recruit${successCount !== 1 ? 's' : ''} to HQ!`);
     }
-  }, [isSyncing]);
+  }, [isSyncing, loadVaultQueue]);
 
-  // Handle adding an item to the queue globally
-  const enqueueOffline = useCallback((payload) => {
-    const queue = getOfflineQueue();
+  // Securely enqueue with AES-GCM encryption
+  const enqueueOffline = useCallback(async (payload) => {
+    const queue = await loadVaultQueue();
     queue.push({ ...payload, _queued_at: Date.now() });
-    localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
+    await cryptoVault.setItem(QUEUE_KEY, queue);
     setOfflineCount(queue.length);
-  }, []);
+    toast.info("💾 Record encrypted & saved locally until signal returns");
+  }, [loadVaultQueue]);
 
   useEffect(() => {
     const handleOnline = () => {
@@ -69,9 +110,8 @@ export function SyncProvider({ children }) {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Initial check just in case the browser was online when loaded with queue
     if (navigator.onLine && offlineCount > 0) {
-       syncOfflineQueue();
+      syncOfflineQueue();
     }
 
     return () => {

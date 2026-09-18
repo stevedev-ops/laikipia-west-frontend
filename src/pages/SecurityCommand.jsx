@@ -1,3 +1,4 @@
+import { useLanguage } from '../contexts/LanguageContext';
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Shield, AlertTriangle, CheckCircle2, Clock, MapPin, Search } from "lucide-react";
@@ -5,6 +6,7 @@ import { toast } from "sonner";
 import { api } from "../lib/api";
 
 export default function SecurityCommand() {
+  const { t } = useLanguage();
   const [logs, setLogs] = useState([]);
   const [miaList, setMiaList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -53,8 +55,8 @@ export default function SecurityCommand() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_100%_0%,rgba(16,185,129,0.15)_0%,transparent_60%)] pointer-events-none" />
         <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.35em] text-dcp-green mb-1">HQ Dashboard</p>
-            <h1 className="text-3xl font-black text-white italic uppercase">Security Command</h1>
+            <p className="text-[10px] font-black uppercase tracking-[0.35em] text-dcp-green mb-1">{t('sec_hq')}</p>
+            <h1 className="text-3xl font-black text-white italic uppercase">{t('sec_command')}</h1>
             <p className="text-slate-400 text-sm mt-1">Live threat map and guard status logs.</p>
           </div>
           <div className="flex items-center gap-3 bg-white/5 p-2 rounded-2xl border border-white/10">
@@ -98,7 +100,7 @@ export default function SecurityCommand() {
             className="bg-red-600 rounded-3xl p-6 shadow-2xl shadow-red-600/20 text-white border-2 border-red-800">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-white/20 rounded-full animate-pulse"><AlertTriangle size={24} /></div>
-              <h2 className="text-xl font-black uppercase tracking-widest">Active Panic Alerts</h2>
+              <h2 className="text-xl font-black uppercase tracking-widest">{t('sec_active_panics')}</h2>
             </div>
             <div className="space-y-3">
               {panics.map(p => (

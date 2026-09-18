@@ -9,9 +9,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.png', 'logo.png'],
       manifest: {
-        name: 'Ol Kalou DCP Get Out The Voting Network',
-        short_name: 'DCP Ol Kalou',
-        description: 'Democracy for Citizens Party – Ol Kalou Constituency mobilization platform.',
+        name: 'Laikipia DCP Get Out The Voting Network',
+        short_name: 'DCP Laikipia',
+        description: 'Democracy for Citizens Party – Laikipia mobilization platform.',
         theme_color: '#00843D',
         background_color: '#020617',
         display: 'standalone',

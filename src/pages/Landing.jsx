@@ -1,3 +1,4 @@
+import { useLanguage } from '../contexts/LanguageContext';
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Hero from '../components/Hero';
@@ -8,6 +9,7 @@ import { api } from '../lib/api';
 import { Lock } from "lucide-react";
 
 export default function Landing({ onLogin, referrerId, inviteToken }) {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [referrerName, setReferrerName] = useState(null);
   const [referrerValid, setReferrerValid] = useState(null); // null=checking, true=valid, false=invalid
@@ -75,7 +77,7 @@ export default function Landing({ onLogin, referrerId, inviteToken }) {
     <div className="flex flex-col items-center bg-white min-h-screen">
       <Hero />
       
-      <main className="w-full max-w-7xl mx-auto px-4 pb-12 pt-8">
+      <main className="w-full max-w-7xl mx-auto px-2 sm:px-4 pb-6 pt-3 sm:pb-12 sm:pt-6">
 
         {/* Auth Mode Toggle */}
         {referrerId && (
@@ -92,7 +94,7 @@ export default function Landing({ onLogin, referrerId, inviteToken }) {
               <div className="bg-slate-900 border-2 border-amber-400 px-6 py-3 rounded-2xl shadow-xl flex items-center gap-3">
                 <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0" />
                 <p className="text-xs font-black text-white uppercase tracking-widest">
-                  Official <span className="text-amber-400 italic">Mobilizer Invitation</span> Accepted
+                  Official <span className="text-amber-400 italic">{t('land_invite')}</span> Accepted
                 </p>
               </div>
             )}
@@ -145,7 +147,7 @@ export default function Landing({ onLogin, referrerId, inviteToken }) {
               <div className="w-16 h-16 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center mx-auto">
                 <Lock className="text-red-400 w-7 h-7" />
               </div>
-              <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Invalid Invitation</h3>
+              <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">{t('land_invalid')}</h3>
               <p className="text-sm text-slate-500 font-bold">This {inviteToken ? 'one-time code has already been used or' : 'referral link'} is not valid. Contact HQ for a valid registration link.</p>
               <button onClick={() => setAuthMode('login')} className="mt-2 px-6 py-3 bg-slate-900 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-slate-700 transition">
                 Go to Login
@@ -156,7 +158,7 @@ export default function Landing({ onLogin, referrerId, inviteToken }) {
           <LoginForm onLogin={(id, token) => onLogin(id, token)} />
         )}
 
-        <footer className="mt-12 text-center border-t border-slate-200 pt-8 pb-10">
+        <footer className="mt-6 text-center border-t border-slate-100 pt-4 pb-6 sm:mt-12 sm:pt-8 sm:pb-10">
            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-loose">
               © 2026 Democracy for Citizens Party (DCP) • Official Enrollment Portal
            </p>

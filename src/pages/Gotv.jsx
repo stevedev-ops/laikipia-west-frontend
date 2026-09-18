@@ -1,3 +1,4 @@
+import { useLanguage } from '../contexts/LanguageContext';
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, CheckCircle2, Circle, Users, MapPin, Filter, Loader2, AlertTriangle, Download } from "lucide-react";
@@ -37,6 +38,7 @@ function VotedStatusButton({ member, onToggle }) {
 }
 
 export default function Gotv({ memberId, isAdmin = false }) {
+  const { t } = useLanguage();
   const { wardsWithCenters } = useLocationData();
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -124,7 +126,7 @@ export default function Gotv({ memberId, isAdmin = false }) {
 
         {/* Filters */}
         <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Select Polling Station</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t('gotv_select_station')}</p>
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Ward</label>
@@ -135,10 +137,10 @@ export default function Gotv({ memberId, isAdmin = false }) {
               </select>
             </div>
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Polling Station</label>
+              <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">{t('sec_station')}</label>
               <select value={station} onChange={e => setStation(e.target.value)} disabled={!ward}
                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-black uppercase tracking-widest outline-none focus:border-dcp-green/50 transition appearance-none disabled:opacity-50">
-                <option value="">All Stations in Ward</option>
+                <option value="">{t('gotv_all_stations')}</option>
                 {availableStations.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
@@ -169,17 +171,17 @@ export default function Gotv({ memberId, isAdmin = false }) {
               {/* Table — scrollable on mobile */}
               <div className="overflow-x-auto">
               {/* Table header */}
-              <div className="grid grid-cols-12 px-6 py-3 bg-slate-50 border-b border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-400 min-w-[480px]">
+              <div className="grid grid-cols-12 px-6 py-3 bg-slate-50 border-b border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-400 w-full">
                 <div className="col-span-1">#</div>
-                <div className="col-span-5">Full Name</div>
-                <div className="col-span-3">Polling Station</div>
+                <div className="col-span-5">{t('mem_name')}</div>
+                <div className="col-span-3">{t('sec_station')}</div>
                 <div className="col-span-3 text-right">Status</div>
               </div>
 
               <div className="divide-y divide-slate-100">
                 {loading ? (
                   Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="px-6 py-4 animate-pulse flex gap-4 min-w-[480px]">
+                    <div key={i} className="px-6 py-4 animate-pulse flex gap-4 w-full">
                       <div className="h-4 bg-slate-200 rounded flex-1" />
                       <div className="h-8 bg-slate-200 rounded w-28" />
                     </div>
@@ -193,7 +195,7 @@ export default function Gotv({ memberId, isAdmin = false }) {
                     {filtered.map((m, i) => (
                       <motion.div key={m.id} layout
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className={`grid grid-cols-12 items-center px-6 py-4 gap-2 transition min-w-[480px] ${m.has_voted ? "bg-dcp-green/5" : "hover:bg-slate-50"}`}
+                        className={`grid grid-cols-12 items-center px-6 py-4 gap-2 transition w-full ${m.has_voted ? "bg-dcp-green/5" : "hover:bg-slate-50"}`}
                       >
                         <div className="col-span-1 text-[10px] font-black text-slate-400">#{i + 1}</div>
                         <div className="col-span-5">

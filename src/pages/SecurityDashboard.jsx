@@ -1,3 +1,4 @@
+import { useLanguage } from '../contexts/LanguageContext';
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShieldAlert, CheckCircle, Navigation, Clock, ShieldCheck, MapPin, EyeOff, Users, AlertTriangle, Building2, PhoneCall, Star } from "lucide-react";
@@ -6,6 +7,7 @@ import { api } from "../lib/api";
 import { useLocationData } from "../contexts/LocationContext";
 
 export default function SecurityDashboard({ profile }) {
+  const { t } = useLanguage();
   const rank = profile?.security_rank || 'guard';
 
   if (rank === 'ward_commander') {
@@ -18,6 +20,7 @@ export default function SecurityDashboard({ profile }) {
 }
 
 function GuardView({ profile }) {
+  const { t } = useLanguage();
   const { wardsWithCenters } = useLocationData();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -137,7 +140,7 @@ function GuardView({ profile }) {
           </div>
           <div className="flex-1">
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Rank: Guard</p>
-            <h1 className="text-xl font-black text-white uppercase tracking-widest">Post Command</h1>
+            <h1 className="text-xl font-black text-white uppercase tracking-widest">{t('sec_post_command')}</h1>
           </div>
           <button onClick={() => setIsCovert(true)} title="Covert Mode" className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 flex items-center justify-center shrink-0 transition">
             <EyeOff className="w-5 h-5" />
@@ -187,7 +190,7 @@ function GuardView({ profile }) {
         </div>
         
         <div>
-          <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Current Status</label>
+          <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">{t('sec_current_status')}</label>
           <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
             className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:border-dcp-green transition appearance-none">
             <option value="all_clear">🟢 All Clear - Routine</option>
@@ -197,7 +200,7 @@ function GuardView({ profile }) {
         </div>
 
         <div>
-          <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Optional Notes</label>
+          <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">{t('sec_optional_notes')}</label>
           <input type="text" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
             placeholder="Anything to report?"
             className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:border-dcp-green transition" />
@@ -213,6 +216,7 @@ function GuardView({ profile }) {
 }
 
 function StationCommanderView({ profile }) {
+  const { t } = useLanguage();
   const [logs, setLogs] = useState([]);
   const [personnel, setPersonnel] = useState([]);
   
@@ -230,7 +234,7 @@ function StationCommanderView({ profile }) {
             <Building2 className="w-7 h-7" />
           </div>
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.35em] text-blue-400 mb-1">Station Commander</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.35em] text-blue-400 mb-1">{t('sec_commander')}</p>
             <h1 className="text-2xl font-black text-white italic uppercase">{profile.polling_station || "Station Command"}</h1>
             <p className="text-slate-400 text-xs mt-1">Manage your team of {personnel.length} guards and oversee station security.</p>
           </div>
@@ -284,6 +288,7 @@ function StationCommanderView({ profile }) {
 }
 
 function WardCommanderView({ profile }) {
+  const { t } = useLanguage();
   const [logs, setLogs] = useState([]);
   const [personnel, setPersonnel] = useState([]);
   

@@ -1,3 +1,4 @@
+import { useLanguage } from '../contexts/LanguageContext';
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PhoneCall, MapPin, ThumbsUp, HelpCircle, ThumbsDown, UserX, Loader2, Play, CheckCircle2 } from "lucide-react";
@@ -7,11 +8,12 @@ import { api } from "../lib/api";
 const SCRIPT = `
 "Hello, am I speaking with [NAME]? 
 My name is [YOUR NAME] and I am calling on behalf of the Democracy for Citizens Party (DCP). 
-We are reaching out to voters in [WARD] ahead of the upcoming Ol Kalou by-election.
+We are reaching out to voters in [WARD] ahead of the upcoming Laikipia campaign.
 Are you planning to vote, and if so, can we count on your support for our candidate?"
 `;
 
 export default function PhoneBank() {
+  const { t } = useLanguage();
   const [target, setTarget] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -58,8 +60,8 @@ export default function PhoneBank() {
             <div className="w-16 h-16 rounded-full bg-white/10 border border-white/20 flex items-center justify-center mx-auto mb-4">
               <PhoneCall className="text-dcp-green w-8 h-8" />
             </div>
-            <p className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-400 mb-1">Remote Volunteer Hub</p>
-            <h1 className="text-3xl font-black text-white italic uppercase">Virtual Phone Bank</h1>
+            <p className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-400 mb-1">{t('pb_remote')}</p>
+            <h1 className="text-3xl font-black text-white italic uppercase">{t('pb_title')}</h1>
           </div>
         </div>
 
@@ -78,7 +80,7 @@ export default function PhoneBank() {
             className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-sm space-y-8">
             
             <div className="text-center space-y-2">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Current Target</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t('pb_current_target')}</p>
               <h2 className="text-4xl font-black text-slate-900 uppercase tracking-tight">{target.voter_name}</h2>
               <div className="flex items-center justify-center gap-3 text-sm font-bold text-slate-500">
                 <span className="flex items-center gap-1 bg-slate-100 px-3 py-1 rounded-full"><PhoneCall className="w-4 h-4" /> {target.phone}</span>
@@ -91,18 +93,18 @@ export default function PhoneBank() {
                 <Play className="w-3 h-3" /> Reading Script
               </p>
               <p className="text-lg font-bold text-slate-700 leading-relaxed italic">
-                {SCRIPT.replace('[NAME]', target.voter_name).replace('[WARD]', target.ward || 'Ol Kalou')}
+                {SCRIPT.replace('[NAME]', target.voter_name).replace('[WARD]', target.ward || 'Laikipia')}
               </p>
             </div>
 
             <div className="space-y-4">
-              <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400">Log Call Outcome</label>
+              <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400">{t('pb_log_outcome')}</label>
               
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <button disabled={submitting} onClick={() => handleOutcome('strong_dcp')}
                   className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border-2 border-dcp-green/30 bg-dcp-green/5 text-dcp-green hover:bg-dcp-green hover:text-white transition group disabled:opacity-50">
                   <ThumbsUp className="w-6 h-6" />
-                  <span className="text-[9px] font-black uppercase tracking-widest text-center">Strong DCP</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-center">{t('pb_strong_dcp')}</span>
                 </button>
                 <button disabled={submitting} onClick={() => handleOutcome('undecided')}
                   className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border-2 border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-200 transition disabled:opacity-50">

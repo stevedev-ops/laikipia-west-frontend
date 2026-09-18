@@ -1,3 +1,5 @@
+import AgentDashboard from './pages/AgentDashboard';
+import Diary from './pages/Diary';
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { Routes, Route, useNavigate, useSearchParams, NavLink, useLocation, Navigate } from 'react-router-dom';
 import { Toaster } from "sonner";
@@ -23,11 +25,12 @@ const PhoneBank = lazy(() => import('./pages/PhoneBank'));
 const SecurityDashboard = lazy(() => import('./pages/SecurityDashboard'));
 const SecurityCommand = lazy(() => import('./pages/SecurityCommand'));
 const CheatSheets = lazy(() => import('./pages/CheatSheets'));
+const SocialJoin = lazy(() => import('./pages/SocialJoin'));
 import { api } from "./lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  LayoutDashboard, Users, BarChart3, Map, BookOpen, Truck,
-  MessageSquare, Navigation, Trophy, UserPlus, LogOut, Menu, X, Shield, Megaphone,
+  LayoutDashboard, Languages, Users, BarChart3, Map, BookOpen, Truck,
+  MessageSquare, Navigation, Trophy, UserPlus, LogOut, Menu, X, Shield, ShieldCheck, Calendar, Megaphone,
   UserCog, ClipboardList, AlertTriangle, Phone, Link2
 } from "lucide-react";
 import { useLanguage } from "./contexts/LanguageContext";
@@ -36,53 +39,48 @@ import { CloudUpload } from "lucide-react";
 import LanguageToggle from "./components/LanguageToggle";
 
 // ── Sidebar nav definition ──────────────────────────────────────────────────
-const NAV_GROUPS = [
+const AGENT_NAV_GROUPS = [
   {
-    labelKey: "my_tools",
+    labelKey: "Agent Operations",
     items: [
-      { to: "/dashboard",   icon: LayoutDashboard, labelKey: "nav_dashboard" },
-      { to: "/members",     icon: Users,           labelKey: "nav_members" },
-      { to: "/reports",     icon: BarChart3,       labelKey: "nav_reports" },
-      { to: "/leaderboard", icon: Trophy,          labelKey: "nav_leaderboard" },
+      { to: "/agent-dashboard", icon: ShieldCheck, labelKey: "Agent Cockpit" },
+      { to: "/tally",           icon: ClipboardList, labelKey: "Form 34A PVT Tally" },
+      { to: "/incidents",       icon: AlertTriangle, labelKey: "Station Alerts & Incidents" },
+      { to: "/training",        icon: BookOpen,      labelKey: "Agent Legal Rights (Reg 79)" },
+    ],
+  }
+];
+
+const MOBILIZER_NAV_GROUPS = [
+  {
+    labelKey: "Mobilizer Workspace",
+    items: [
+      { to: "/dashboard",   icon: LayoutDashboard, labelKey: "My Mobilizer Hub" },
+      { to: "/members",     icon: Users,           labelKey: "My Recruits Downline" },
+      { to: "/diary",       icon: Calendar,        labelKey: "Governor's Diary & Chamas" },
+      { to: "/enroll",      icon: UserPlus,        labelKey: "Enroll New Voter" },
     ],
   },
   {
-    labelKey: "field_ops",
+    labelKey: "Grassroots Fieldwork",
     items: [
-      { to: "/enroll",    icon: UserPlus,      labelKey: "nav_enroll" },
-      { to: "/coverage",  icon: Map,           labelKey: "nav_coverage" },
-      { to: "/canvass",   icon: BookOpen,      labelKey: "nav_canvass" },
-      { to: "/transport", icon: Truck,         labelKey: "nav_boda" },
-      { to: "/agents",    icon: UserCog,       labelKey: "nav_agents" },
-      { to: "/tally",     icon: ClipboardList, labelKey: "nav_pvt" },
-      { to: "/gotv",      icon: Navigation,    labelKey: "nav_gotv" },
-      { to: "/training",  icon: BookOpen,      labelKey: "nav_training" },
-    ],
-  },
-  {
-    labelKey: "intelligence",
-    items: [
-      { to: "/security", icon: Shield, labelKey: "nav_security" },
-      { to: "/security-command", icon: Shield, labelKey: "nav_sec_command" },
-      { to: "/incidents", icon: AlertTriangle, labelKey: "nav_alerts" },
-      { to: "/phonebank", icon: Phone,         labelKey: "nav_phonebank" },
-      { to: "/matcher",   icon: Link2,         labelKey: "nav_matcher" },
-      { to: "/sms",       icon: MessageSquare, labelKey: "nav_sms" },
+      { to: "/canvass",   icon: BookOpen,      labelKey: "Panna Canvassing" },
+      { to: "/transport", icon: Truck,         labelKey: "Boda-Boda Logistics" },
+      { to: "/phonebank", icon: Phone,         labelKey: "Virtual Phone Bank" },
+      { to: "/matcher",   icon: Link2,         labelKey: "Contact Matcher" },
     ],
   },
 ];
+
+const NAV_GROUPS = [...AGENT_NAV_GROUPS, ...MOBILIZER_NAV_GROUPS];
 
 // ── Sidebar component ───────────────────────────────────────────────────────
 function MemberSidebar({ profile, onLogout, isOpen, onClose }) {
   const { t } = useLanguage();
   const isSecurityOnly = profile?.is_security_only;
   
-  const filteredNavGroups = NAV_GROUPS.filter(group => {
-    if (isSecurityOnly) {
-      return group.labelKey === 'intelligence';
-    }
-    return true;
-  });
+  const isAgent = profile?.is_agent;
+  const filteredNavGroups = isAgent ? AGENT_NAV_GROUPS : MOBILIZER_NAV_GROUPS;
 
   return (
     <>
@@ -119,7 +117,7 @@ function MemberSidebar({ profile, onLogout, isOpen, onClose }) {
                 </div>
                 <div>
                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em]">{t('member_portal')}</p>
-                  <p className="text-xs font-black text-slate-900 uppercase tracking-widest">Ol Kalou</p>
+                  <p className="text-xs font-black text-slate-900 uppercase tracking-widest">Laikipia</p>
                 </div>
               </div>
               <button
@@ -260,8 +258,53 @@ function GlobalSyncIndicator() {
   );
 }
 
+
+// ── Mobile Bottom Navigation Bar (Thumb-Friendly 1-Handed Operation) ───────────
+function MobileBottomNav({ profile }) {
+  const location = useLocation();
+  const isAgent = profile?.is_agent;
+
+  const items = isAgent
+    ? [
+        { to: "/agent-dashboard", label: "Cockpit", icon: ShieldCheck },
+        { to: "/tally",           label: "34A Tally", icon: ClipboardList },
+        { to: "/incidents",       label: "Alerts",    icon: AlertTriangle },
+        { to: "/training",        label: "Reg 79",    icon: BookOpen },
+      ]
+    : [
+        { to: "/dashboard",   label: "Hub",       icon: LayoutDashboard },
+        { to: "/members",     label: "Recruits",  icon: Users },
+        { to: "/diary",       label: "Diary",     icon: Calendar },
+        { to: "/enroll",      label: "Enroll",    icon: UserPlus },
+      ];
+
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-2 py-1.5 flex items-center justify-around md:hidden shadow-lg shadow-slate-900/10">
+      {items.map(({ to, label, icon: Icon }) => {
+        const active = location.pathname === to;
+        return (
+          <NavLink
+            key={to}
+            to={to}
+            className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all ${
+              active
+                ? "text-emerald-700 font-black"
+                : "text-slate-600 hover:text-slate-900 font-bold"
+            }`}
+          >
+            <Icon size={20} className={active ? "text-emerald-600 stroke-[2.5]" : "stroke-[1.8]"} />
+            <span className={`text-[10px] tracking-tight uppercase mt-0.5 ${active ? "font-black" : "font-medium"}`}>
+              {label}
+            </span>
+          </NavLink>
+        );
+      })}
+    </nav>
+  );
+}
+
 function App() {
-  const { t } = useLanguage();
+  const { lang, setLang, t } = useLanguage();
   const [memberId, setMemberId] = useState(() => localStorage.getItem("dcp_member_id"));
   const [memberProfile, setMemberProfile] = useState(() => {
     const cached = localStorage.getItem("dcp_member_profile");
@@ -277,7 +320,8 @@ function App() {
   const isLanding  = location.pathname === "/";
   const isAdmin    = location.pathname.startsWith("/admin");
   const isLoginPage = location.pathname === "/login";
-  const showMemberNav = memberId && !isAdmin && !isLanding && !isLoginPage;
+  const isJoinPage = location.pathname.startsWith("/join");
+  const showMemberNav = memberId && !isAdmin && !isLanding && !isLoginPage && !isJoinPage;
 
   // Close sidebar on route change
   useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
@@ -399,9 +443,10 @@ function App() {
     return <Admin onLogout={handleLogout} />;
   };
 
-  const currentPageLabel = NAV_GROUPS
+  const activeNavList = memberProfile?.is_agent ? AGENT_NAV_GROUPS : MOBILIZER_NAV_GROUPS;
+  const currentPageLabel = activeNavList
     .flatMap(g => g.items)
-    .find(i => i.to === location.pathname)?.labelKey || "member_portal";
+    .find(i => i.to === location.pathname)?.labelKey || (memberProfile?.is_agent ? "Agent Cockpit" : "member_portal");
 
   return (
     <div className={`min-h-screen w-full font-sans transition-colors duration-500 flex flex-col ${
@@ -431,25 +476,52 @@ function App() {
         />
       )}
 
-      {/* Slim top bar with hamburger — member pages only */}
+      {/* Slim top bar with hamburger & 3-Language switcher (EN / KISW / GĨK) */}
       {showMemberNav && (
-        <header className="sticky top-0 z-20 h-14 bg-white/90 backdrop-blur-xl border-b border-slate-200 shadow-sm flex items-center px-4 gap-4">
-          <button
-            id="sidebar-toggle"
-            onClick={() => setSidebarOpen(v => !v)}
-            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
-            aria-label="Toggle navigation"
-          >
-            {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
-          </button>
-          <div className="flex items-center gap-2.5">
-            <div className="w-6 h-6 rounded-lg bg-slate-950 flex items-center justify-center">
-              <span className="text-dcp-green font-black text-[8px] uppercase tracking-widest">DCP</span>
+        <header className="sticky top-0 z-20 h-14 bg-white/95 backdrop-blur-xl border-b border-slate-200 shadow-sm flex items-center justify-between px-3 sm:px-4 gap-2">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <button
+              id="sidebar-toggle"
+              onClick={() => setSidebarOpen(v => !v)}
+              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition shrink-0"
+              aria-label="Toggle navigation"
+            >
+              {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
+            </button>
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-6 h-6 rounded-lg bg-slate-950 flex items-center justify-center shrink-0">
+                <span className="text-dcp-green font-black text-[8px] uppercase tracking-widest">DCP</span>
+              </div>
+              <p className="text-xs font-black text-slate-900 uppercase tracking-widest truncate">{t(currentPageLabel)}</p>
             </div>
-            <p className="text-xs font-black text-slate-900 uppercase tracking-widest">{t(currentPageLabel)}</p>
+          </div>
+
+          {/* 3-Language Switcher (English · Kiswahili · Gĩkũyũ) */}
+          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
+            <Languages size={13} className="text-slate-400 ml-1.5 mr-1 hidden xs:block" />
+            {[
+              { code: 'en', label: 'EN' },
+              { code: 'sw', label: 'KISW' },
+              { code: 'ki', label: 'GĨK' },
+            ].map(l => (
+              <button
+                key={l.code}
+                onClick={() => setLang(l.code)}
+                className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition ${
+                  lang === l.code
+                    ? 'bg-slate-900 text-white shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {l.label}
+              </button>
+            ))}
           </div>
         </header>
       )}
+
+      {/* Mobile Bottom Navigation Bar */}
+      {showMemberNav && <MobileBottomNav profile={memberProfile} />}
 
       {/* Page content */}
       <main className={`relative z-10 ${showMemberNav ? 'p-4 md:p-8 min-h-[calc(100vh-3.5rem)]' : ''}`}>
@@ -463,7 +535,11 @@ function App() {
           <Routes>
             <Route path="/"           element={<Landing onLogin={handleLogin} referrerId={searchParams.get("ref")} inviteToken={searchParams.get("invite")} />} />
             <Route path="/login"      element={<Login onLogin={handleLogin} />} />
+            <Route path="/join"       element={<SocialJoin />} />
+            <Route path="/join/:src"  element={<SocialJoin />} />
+            <Route path="/agent-dashboard" element={authed(<AgentDashboard memberId={memberId} />)} />
             <Route path="/dashboard"  element={authed(<Dashboard  memberId={memberId} onLogout={handleLogout} />)} />
+            <Route path="/diary"      element={authed(<Diary user={memberProfile} />)} />
             <Route path="/members"    element={authed(<Members    memberId={memberId} isAdmin={false} />)} />
             <Route path="/reports"    element={authed(<Reports    memberId={memberId} />)} />
             <Route path="/enroll"     element={authed(<Enrollment memberId={memberId} />)} />
@@ -491,7 +567,7 @@ function App() {
         <footer className="relative z-10 py-12 border-t border-white/5 bg-black/40 backdrop-blur-sm text-center">
           <div className="max-w-4xl mx-auto px-6 space-y-4">
             <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.3em]">&copy; 2026 Democracy for Citizens Party (DCP)</p>
-            <p className="text-xs text-gray-600 max-w-lg mx-auto leading-relaxed">Building a movement for accountability in Ol Kalou and across Kenya.</p>
+            <p className="text-xs text-gray-600 max-w-lg mx-auto leading-relaxed">Building a movement for accountability in Laikipia and across Kenya.</p>
             <div className="flex justify-center gap-6 pt-4">
               <a href="#" className="text-[10px] font-bold text-gray-500 hover:text-dcp-green transition-colors uppercase tracking-widest">Privacy</a>
               <a href="#" className="text-[10px] font-bold text-gray-500 hover:text-dcp-green transition-colors uppercase tracking-widest">Terms</a>
