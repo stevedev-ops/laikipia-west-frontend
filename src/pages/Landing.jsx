@@ -6,17 +6,17 @@ import RegistrationForm from '../components/RegistrationForm';
 import VoterLookup from '../components/VoterLookup';
 import LoginForm from '../components/LoginForm';
 import { api } from '../lib/api';
-import { Lock, UserPlus, LogIn } from "lucide-react";
+import { Lock } from "lucide-react";
 
 export default function Landing({ onLogin, referrerId, inviteToken }) {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [referrerName, setReferrerName] = useState(null);
-  const [referrerValid, setReferrerValid] = useState(null);
-  const [inviteValid, setInviteValid] = useState(null);
+  const [referrerValid, setReferrerValid] = useState(null); // null=checking, true=valid, false=invalid
+  const [inviteValid, setInviteValid] = useState(null); // null=checking, true=valid, false=invalid
 
-  // Default to register/enrollment mode so visitors can register, with instant toggle to login
-  const [authMode, setAuthMode] = useState('register');
+  // If they have a referrerId or inviteToken, they are probably a new user being invited
+  const [authMode, setAuthMode] = useState((referrerId || inviteToken) ? 'register' : 'login');
   const [authStep, setAuthStep] = useState('lookup'); // 'lookup' | 'form'
   const [prefillData, setPrefillData] = useState(null);
 
@@ -28,7 +28,8 @@ export default function Landing({ onLogin, referrerId, inviteToken }) {
     let cancelled = false;
     const fetchReferrerName = async () => {
       try {
-        const { data } = await api.getMemberPublic(referrerId);
+        const { data, error } = await api.getMemberPublic(referrerId);
+
         if (!cancelled) {
           if (data) {
             setReferrerName(data.full_name);
@@ -54,7 +55,8 @@ export default function Landing({ onLogin, referrerId, inviteToken }) {
     let cancelled = false;
     const validateInvite = async () => {
       try {
-        const { data } = await api.getInvite(inviteToken);
+        const { data, error } = await api.getInvite(inviteToken);
+
         if (!cancelled) {
           if (data && !data.is_used) {
             setInviteValid(true);
@@ -77,64 +79,80 @@ export default function Landing({ onLogin, referrerId, inviteToken }) {
       
       <main className="w-full max-w-7xl mx-auto px-2 sm:px-4 pb-6 pt-3 sm:pb-12 sm:pt-6">
 
-        {/* Global Auth Mode Toggle Bar */}
-        <div className="flex flex-col items-center gap-4 mb-6 sm:mb-8 relative z-40">
-          {referrerName && (
-            <div className="bg-white border-2 border-dcp-green px-6 py-2.5 rounded-2xl shadow-md flex items-center gap-3">
-              <div className="w-2.5 h-2.5 rounded-full bg-dcp-green animate-pulse shrink-0" />
-              <p className="text-xs font-black text-slate-900 uppercase tracking-widest">
-                Invited by: <span className="text-dcp-green italic">{referrerName}</span>
-              </p>
+        {/* Auth Mode Toggle */}
+        {referrerId && (
+          <div className="flex flex-col items-center gap-4 mb-8 relative z-40">
+            {referrerName && (
+              <div className="bg-white border-2 border-dcp-green px-6 py-3 rounded-2xl shadow-md flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-dcp-green animate-pulse shrink-0" />
+                <p className="text-xs font-black text-slate-900 uppercase tracking-widest">
+                  Invited by: <span className="text-dcp-green italic">{referrerName}</span>
+                </p>
+              </div>
+            )}
+            {inviteValid && (
+              <div className="bg-slate-900 border-2 border-amber-400 px-6 py-3 rounded-2xl shadow-xl flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0" />
+                <p className="text-xs font-black text-white uppercase tracking-widest">
+                  Official <span className="text-amber-400 italic">{t('land_invite')}</span> Accepted
+                </p>
+              </div>
+            )}
+            <div className="bg-white p-1.5 rounded-2xl shadow-sm border border-slate-200 inline-flex">
+              <button
+                onClick={() => setAuthMode('login')}
+                className={`px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${authMode === 'login' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:text-slate-800'}`}
+              >
+                Member Login
+              </button>
+              <button
+                onClick={() => { setAuthMode('register'); setAuthStep('lookup'); setPrefillData(null); }}
+                className={`px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${authMode === 'register' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:text-slate-800'}`}
+              >
+                Enroll New Member
+              </button>
             </div>
-          )}
-          {inviteValid && (
-            <div className="bg-slate-900 border-2 border-amber-400 px-6 py-2.5 rounded-2xl shadow-xl flex items-center gap-3">
-              <div className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
-              <p className="text-xs font-black text-white uppercase tracking-widest">
-                Official <span className="text-amber-400 italic">{t('land_invite')}</span> Accepted
-              </p>
-            </div>
-          )}
-          
-          <div className="bg-slate-100 p-1.5 rounded-2xl shadow-inner border border-slate-200 inline-flex gap-1">
-            <button
-              onClick={() => { setAuthMode('register'); setAuthStep('lookup'); setPrefillData(null); }}
-              className={`flex items-center gap-2 px-5 sm:px-7 py-2.5 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all ${authMode === 'register' ? 'bg-dcp-green text-white shadow-md' : 'text-slate-600 hover:text-slate-900'}`}
-            >
-              <UserPlus size={16} />
-              Enroll New Member
-            </button>
-            <button
-              onClick={() => setAuthMode('login')}
-              className={`flex items-center gap-2 px-5 sm:px-7 py-2.5 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all ${authMode === 'login' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-600 hover:text-slate-900'}`}
-            >
-              <LogIn size={16} />
-              Member Login
-            </button>
           </div>
-        </div>
+        )}
 
-        {authMode === 'register' ? (
-          authStep === 'lookup' ? (
-            <div className="max-w-xl mx-auto w-full bg-white rounded-[2rem] p-4 sm:p-6 shadow-xl border border-slate-100">
-              <VoterLookup 
-                onSelect={(formData) => {
-                  setPrefillData(formData);
-                  setAuthStep('form');
-                }}
-                onSkip={() => {
-                  setPrefillData(null);
-                  setAuthStep('form');
-                }}
-              />
+        {authMode === 'register' && (referrerId || inviteToken) ? (
+          (referrerValid === null && !inviteToken) || (inviteValid === null && inviteToken) ? (
+            <div className="flex justify-center py-16">
+              <div className="w-8 h-8 border-4 border-dcp-green/20 border-t-dcp-green rounded-full animate-spin" />
             </div>
+          ) : (referrerValid || inviteValid) ? (
+            authStep === 'lookup' ? (
+              <div className="max-w-xl mx-auto w-full bg-white rounded-[2rem] p-6 shadow-xl border border-slate-100">
+                <VoterLookup 
+                  onSelect={(formData) => {
+                    setPrefillData(formData);
+                    setAuthStep('form');
+                  }}
+                  onSkip={() => {
+                    setPrefillData(null);
+                    setAuthStep('form');
+                  }}
+                />
+              </div>
+            ) : (
+              <RegistrationForm
+                referrerId={referrerValid ? referrerId : null}
+                inviteToken={inviteValid ? inviteToken : null}
+                initialData={prefillData}
+                onSuccess={(res) => { onLogin(res.member.id, res.token); navigate("/dashboard"); }}
+              />
+            )
           ) : (
-            <RegistrationForm
-              referrerId={referrerValid ? referrerId : null}
-              inviteToken={inviteValid ? inviteToken : null}
-              initialData={prefillData}
-              onSuccess={(res) => { onLogin(res.member.id, res.token); navigate("/dashboard"); }}
-            />
+            <div className="max-w-md mx-auto text-center py-16 space-y-4">
+              <div className="w-16 h-16 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center mx-auto">
+                <Lock className="text-red-400 w-7 h-7" />
+              </div>
+              <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">{t('land_invalid')}</h3>
+              <p className="text-sm text-slate-500 font-bold">This {inviteToken ? 'one-time code has already been used or' : 'referral link'} is not valid. Contact HQ for a valid registration link.</p>
+              <button onClick={() => setAuthMode('login')} className="mt-2 px-6 py-3 bg-slate-900 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-slate-700 transition">
+                Go to Login
+              </button>
+            </div>
           )
         ) : (
           <LoginForm onLogin={(id, token) => onLogin(id, token)} />
