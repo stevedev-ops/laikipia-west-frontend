@@ -72,18 +72,6 @@ export default function SocialJoin() {
   const [whatsappLink, setWhatsappLink] = useState("https://chat.whatsapp.com/sample");
   const [loadingConfig, setLoadingConfig] = useState(true);
 
-  const [isCustomStation, setIsCustomStation] = useState(false);
-  const locationCtx = useLocationData ? useLocationData() : null;
-  const wardStationMap = locationCtx?.wardStationMap || {};
-
-  const cleanWard = (formData.ward || "").trim();
-  const stationsForWard = (function() {
-    if (!cleanWard || !wardStationMap) return [];
-    if (wardStationMap[cleanWard]) return wardStationMap[cleanWard];
-    const key = Object.keys(wardStationMap).find(k => k.toLowerCase() === cleanWard.toLowerCase());
-    return key ? wardStationMap[key] : [];
-  })();
-
   // Form State
   const [formData, setFormData] = useState({
     website_url_trap: "",
@@ -98,6 +86,18 @@ export default function SocialJoin() {
     customRole: "",
     consent: false
   });
+
+  const [isCustomStation, setIsCustomStation] = useState(false);
+  const locationCtx = useLocationData ? useLocationData() : null;
+  const wardStationMap = locationCtx?.wardStationMap || {};
+
+  const cleanWard = (formData.ward || "").trim();
+  const stationsForWard = (function() {
+    if (!cleanWard || !wardStationMap) return [];
+    if (wardStationMap[cleanWard]) return wardStationMap[cleanWard];
+    const key = Object.keys(wardStationMap).find(k => k.toLowerCase() === cleanWard.toLowerCase());
+    return key ? wardStationMap[key] : [];
+  })();
 
   const [submitting, setSubmitting] = useState(false);
   const [duplicateError, setDuplicateError] = useState(null);
