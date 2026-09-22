@@ -94,9 +94,14 @@ export default function SocialJoin() {
   const cleanWard = (formData.ward || "").trim();
   const stationsForWard = (function() {
     if (!cleanWard || !wardStationMap) return [];
-    if (wardStationMap[cleanWard]) return wardStationMap[cleanWard];
-    const key = Object.keys(wardStationMap).find(k => k.toLowerCase() === cleanWard.toLowerCase());
-    return key ? wardStationMap[key] : [];
+    let list = wardStationMap[cleanWard];
+    if (!list) {
+      const key = Object.keys(wardStationMap).find(k => k.toLowerCase() === cleanWard.toLowerCase());
+      list = key ? wardStationMap[key] : [];
+    }
+    // Clean stream tags like (Station 01) and deduplicate into clean Polling Centres
+    const cleanCentres = (list || []).map(s => (s || "").replace(/\s*\((Station|Stream)\s*\d+\)/i, "").trim()).filter(Boolean);
+    return Array.from(new Set(cleanCentres)).sort();
   })();
 
   const [submitting, setSubmitting] = useState(false);
@@ -513,11 +518,11 @@ export default function SocialJoin() {
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-xs font-semibold text-slate-300 flex items-center gap-1.5">
                     <MapPin className="w-3.5 h-3.5 text-emerald-400" />
-                    Polling Station / Village <span className="text-slate-500 font-normal">(Optional)</span>
+                    Polling Centre (School / Venue) <span className="text-slate-500 font-normal">(Optional)</span>
                   </label>
                   {stationsForWard.length > 0 && !isCustomStation && (
                     <span className="text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                      {stationsForWard.length} Stations in {cleanWard}
+                      {stationsForWard.length} Centres in {cleanWard}
                     </span>
                   )}
                 </div>
@@ -529,7 +534,7 @@ export default function SocialJoin() {
                       name="pollingStation"
                       value={formData.pollingStation}
                       onChange={handleChange}
-                      placeholder="Type your custom polling station or village..."
+                      placeholder="Type your custom polling centre or village..."
                       autoFocus
                       className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/70 border border-emerald-500/60 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
                     />
@@ -541,7 +546,7 @@ export default function SocialJoin() {
                       }}
                       className="text-[11px] text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1 transition"
                     >
-                      ← Back to {cleanWard} Station List
+                      ← Back to {cleanWard} Centre List
                     </button>
                   </div>
                 ) : (
@@ -563,8 +568,8 @@ export default function SocialJoin() {
                       {!formData.ward
                         ? "Select your Ward above first..."
                         : stationsForWard.length > 0
-                        ? "Select your Polling Station from list..."
-                        : "No polling stations found (Choose custom below)"}
+                        ? "Select your Polling Centre (School / Venue)..."
+                        : "No polling centres found (Choose custom below)"}
                     </option>
                     {stationsForWard.map(st => (
                       <option key={st} value={st} className="bg-slate-950 text-white">
