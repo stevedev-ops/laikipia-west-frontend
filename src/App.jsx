@@ -26,6 +26,7 @@ const SecurityDashboard = lazy(() => import('./pages/SecurityDashboard'));
 const SecurityCommand = lazy(() => import('./pages/SecurityCommand'));
 const CheatSheets = lazy(() => import('./pages/CheatSheets'));
 const SocialJoin = lazy(() => import('./pages/SocialJoin'));
+const CampaignHierarchy = lazy(() => import('./pages/CampaignHierarchy'));
 import { api } from "./lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -56,6 +57,7 @@ const MOBILIZER_NAV_GROUPS = [
     labelKey: "Mobilizer Workspace",
     items: [
       { to: "/dashboard",   icon: LayoutDashboard, labelKey: "My Mobilizer Hub" },
+      { to: "/hierarchy",   icon: ShieldCheck,     labelKey: "Campaign Hierarchy" },
       { to: "/members",     icon: Users,           labelKey: "My Recruits Downline" },
       { to: "/diary",       icon: Calendar,        labelKey: "Governor's Diary & Chamas" },
       { to: "/enroll",      icon: UserPlus,        labelKey: "Enroll New Voter" },
@@ -557,6 +559,7 @@ function App() {
             <Route path="/leaderboard" element={authed(<Leaderboard memberId={memberId} />)} />
             <Route path="/gotv"       element={authed(<Gotv memberId={memberId} />)} />
             <Route path="/training"   element={authed(<CheatSheets />)} />
+            <Route path="/hierarchy"  element={authed(<CampaignHierarchy currentUser={memberProfile} />)} />
             <Route path="/admin"      element={renderAdminRoute()} />
           </Routes>
         </Suspense>

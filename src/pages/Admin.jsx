@@ -1,6 +1,7 @@
 import Diary from './Diary';
+import AdminSecuritySettings from '../components/AdminSecuritySettings';
 import { useState, useEffect, useCallback } from "react";
-import { AlertCircle, Users, Star, Network, Database, ShieldCheck, MapPin, Search, Menu, X, CheckCircle2, ChevronRight, ChevronDown, Plus, Download, User, Smartphone, Hash, LayoutDashboard, BarChart3, LogOut, UserCheck, Mail, BookOpen, Truck, UserCog, ClipboardList, AlertTriangle, Phone, Link2, MessageSquare, Navigation, Trophy, UserPlus, Calendar, Megaphone, Loader2, BrainCircuit, Activity } from "lucide-react";
+import { KeyRound, AlertCircle, Users, Star, Network, Database, ShieldCheck, MapPin, Search, Menu, X, CheckCircle2, ChevronRight, ChevronDown, Plus, Download, User, Smartphone, Hash, LayoutDashboard, BarChart3, LogOut, UserCheck, Mail, BookOpen, Truck, UserCog, ClipboardList, AlertTriangle, Phone, Link2, MessageSquare, Navigation, Trophy, UserPlus, Calendar, Megaphone, Loader2, BrainCircuit, Activity } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { api } from "../lib/api";
 import { useLocationData } from "../contexts/LocationContext";
@@ -29,6 +30,7 @@ import Enrollment from "./Enrollment";
 import Events from "./Events";
 import SecurityRoster from "./SecurityRoster";
 import CheatSheets from "./CheatSheets";
+import CampaignHierarchy from "./CampaignHierarchy";
 import { useLanguage } from "../contexts/LanguageContext";
 
 const PAGE_SIZE = 20;
@@ -705,6 +707,35 @@ export default function Admin({ onLogout }) {
   const [digitalCount, setDigitalCount] = useState(0);
   const [loadingDigital, setLoadingDigital] = useState(false);
   const [digitalSourceFilter, setDigitalSourceFilter] = useState("all");
+  const [selectedSocialIds, setSelectedSocialIds] = useState(new Set());
+  const [isConvertingSocial, setIsConvertingSocial] = useState(false);
+
+  const handleConvertToMobilizer = async (idsToConvert) => {
+    const ids = Array.isArray(idsToConvert) ? idsToConvert : [idsToConvert];
+    if (ids.length === 0) return;
+
+    const confirmMsg = ids.length === 1
+      ? "Promote this social recruit to a Polling Station Mobilizer?"
+      : `Promote ${ids.length} selected social recruits to Polling Station Mobilizers?`;
+
+    if (!window.confirm(confirmMsg)) return;
+
+    setIsConvertingSocial(true);
+    try {
+      const res = await api.convertToMobilizer(ids);
+      if (res && res.status === "success") {
+        toast.success(res.message || `Promoted ${res.converted_count || ids.length} recruit(s) to Mobilizer!`);
+        setSelectedSocialIds(new Set());
+        loadDigitalMembers(searchQuery, wardFilter, digitalSourceFilter);
+        loadRootPage(0, searchQuery);
+        loadMembersPage(0, searchQuery, voterStatusFilter);
+      }
+    } catch (err) {
+      toast.error(err?.message || "Failed to promote recruit(s)");
+    } finally {
+      setIsConvertingSocial(false);
+    }
+  };
 
   useEffect(() => {
     const fetchCounts = async () => {
@@ -1203,6 +1234,7 @@ export default function Admin({ onLogout }) {
                         <NavItem id="leaderboard" icon={Trophy} label="Leaderboard" activeTab={activeTab} setActiveTab={setActiveTab} onSelect={() => { if (typeof window !== "undefined" && window.innerWidth < 1024) setIsSidebarOpen(false); }} />
                         <NavItem id="enroll" icon={UserPlus} label="Enroll Member" activeTab={activeTab} setActiveTab={setActiveTab} onSelect={() => { if (typeof window !== "undefined" && window.innerWidth < 1024) setIsSidebarOpen(false); }} />
                         <NavItem id="training" icon={BookOpen} label="Training Materials" activeTab={activeTab} setActiveTab={setActiveTab} onSelect={() => { if (typeof window !== "undefined" && window.innerWidth < 1024) setIsSidebarOpen(false); }} />
+                        <NavItem id="security-settings" icon={KeyRound} label="Admin Password" activeTab={activeTab} setActiveTab={setActiveTab} onSelect={() => { if (typeof window !== "undefined" && window.innerWidth < 1024) setIsSidebarOpen(false); }} />
                      </>
                   )}
                </div>
@@ -1930,6 +1962,46 @@ export default function Admin({ onLogout }) {
                   </div>
                 </div>
 
+                {/* Select All & Batch Move to Mobilizer Toolbar */}
+                {digitalMembers.length > 0 && (
+                  <div className="mx-4 sm:mx-6 mt-4 p-3.5 bg-purple-50/70 border border-purple-200/80 rounded-2xl flex flex-wrap items-center justify-between gap-3">
+                    <label className="flex items-center gap-2.5 cursor-pointer text-xs font-black text-slate-800 uppercase tracking-wider select-none">
+                      <input
+                        type="checkbox"
+                        checked={digitalMembers.length > 0 && selectedSocialIds.size === digitalMembers.length}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedSocialIds(new Set(digitalMembers.map(m => m.id)));
+                          } else {
+                            setSelectedSocialIds(new Set());
+                          }
+                        }}
+                        className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 cursor-pointer accent-emerald-600"
+                      />
+                      <span>Select All ({digitalMembers.length} Social Recruits)</span>
+                    </label>
+
+                    <div className="flex items-center gap-2">
+                      {selectedSocialIds.size > 0 && (
+                        <>
+                          <span className="text-xs font-bold text-purple-900 bg-purple-200/70 px-2.5 py-1 rounded-xl">
+                            {selectedSocialIds.size} Selected
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleConvertToMobilizer(Array.from(selectedSocialIds))}
+                            disabled={isConvertingSocial}
+                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition active:scale-95 disabled:opacity-50"
+                          >
+                            <Star size={14} className="fill-white" />
+                            {isConvertingSocial ? "Moving..." : `Move ${selectedSocialIds.size} to Mobilizers`}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* List of Digital Recruits */}
                 <div className="divide-y divide-slate-100 p-4 sm:p-6 space-y-3">
                   {loadingDigital ? (
@@ -1955,7 +2027,21 @@ export default function Admin({ onLogout }) {
                           key={m.id}
                           className="bg-white border border-slate-200 rounded-2xl p-4 hover:border-purple-300 hover:shadow-sm transition flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                         >
-                          <div className="flex items-start gap-3.5 min-w-0">
+                          <div className="flex items-start gap-3 min-w-0">
+                            <input
+                              type="checkbox"
+                              checked={selectedSocialIds.has(m.id)}
+                              onChange={(e) => {
+                                const newSet = new Set(selectedSocialIds);
+                                if (e.target.checked) {
+                                  newSet.add(m.id);
+                                } else {
+                                  newSet.delete(m.id);
+                                }
+                                setSelectedSocialIds(newSet);
+                              }}
+                              className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 mt-3 cursor-pointer accent-emerald-600 shrink-0"
+                            />
                             <div className="w-10 h-10 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0 shadow-sm font-black text-xs">
                               <User size={18} />
                             </div>
@@ -1992,6 +2078,16 @@ export default function Admin({ onLogout }) {
                                 Under: {m.referrer_name || 'Mobilizer'}
                               </span>
                             )}
+                            <button
+                              type="button"
+                              onClick={() => handleConvertToMobilizer(m.id)}
+                              disabled={isConvertingSocial}
+                              className="px-3 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 border border-emerald-300 text-xs font-black flex items-center gap-1.5 shadow-sm transition active:scale-95 disabled:opacity-50"
+                              title="Make this supporter a Mobilizer"
+                            >
+                              <Star size={13} className="text-emerald-600 fill-emerald-600" />
+                              Make Mobilizer
+                            </button>
                             {m.phone && (
                               <a
                                 href={`tel:${m.phone}`}

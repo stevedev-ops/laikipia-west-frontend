@@ -60,6 +60,16 @@ async function request(endpoint, { body, headers = {}, ...customConfig } = {}) {
 }
 
 export const api = {
+  changeAdminPassword: (currentPassword, newPassword, confirmPassword) =>
+    request('/admin/change-password', {
+      method: 'POST',
+      body: {
+        current_password: currentPassword,
+        new_password: newPassword,
+        confirm_password: confirmPassword
+      }
+    }),
+
   // ─── AUTH & IDENTITY ───────────────────────────────────────────────────────
   login: (credentials, nationalId) => {
     const payload = typeof credentials === 'object' ? credentials : { firstName: credentials, nationalId };
@@ -356,4 +366,25 @@ export const api = {
     request('/members/claim-social', { method: 'POST', body: { national_id, phone } }),
   checkMemberStatus: ({ national_id, phone }) =>
     request('/members/check-status', { method: 'POST', body: { national_id, phone } }),
+
+  // ─── 7-TIER CAMPAIGN HIERARCHY & COMMAND ──────────────────────────────────
+  getHierarchyStats: () =>
+    request('/hierarchy/stats'),
+  getHierarchyTree: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/hierarchy/tree${query ? `?${query}` : ''}`);
+  },
+  getHierarchyDirectory: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/hierarchy/directory${query ? `?${query}` : ''}`);
+  },
+  getMyTeam: () =>
+    request('/hierarchy/my-team'),
+  assignCampaignRole: (data) =>
+    request('/hierarchy/assign', { method: 'POST', body: data }),
+  convertToMobilizer: (memberIds) =>
+    request('/members/convert-to-mobilizer', {
+      method: 'POST',
+      body: { member_ids: Array.isArray(memberIds) ? memberIds : [memberIds] }
+    }),
 };
