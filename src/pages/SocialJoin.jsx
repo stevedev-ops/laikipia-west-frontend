@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { api } from "../lib/api";
 import { ALL_LAIKIPIA_WARDS, LAIKIPIA_CONSTITUENCIES } from "../lib/constants";
+import { useLocationData } from "../contexts/LocationContext";
 import { toast } from "sonner";
 
 const VOLUNTEER_ROLES = [
@@ -109,6 +110,12 @@ export default function SocialJoin() {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    if (name === "ward") {
+      setIsCustomStation(false);
+      setFormData(prev => ({ ...prev, ward: value, pollingStation: "" }));
+      if (duplicateError) setDuplicateError(null);
+      return;
+    }
     setFormData(prev => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value
@@ -489,19 +496,74 @@ export default function SocialJoin() {
                 </div>
               </div>
 
-              {/* Optional Polling Center */}
+              {/* Dynamic Polling Station Dropdown */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Polling Station / Village <span className="text-slate-500 font-normal">(Optional)</span>
-                </label>
-                <input
-                  type="text"
-                  name="pollingStation"
-                  value={formData.pollingStation}
-                  onChange={handleChange}
-                  placeholder="e.g. Nanyuki Primary School"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700/80 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
-                />
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+                    Polling Station / Village <span className="text-slate-500 font-normal">(Optional)</span>
+                  </label>
+                  {stationsForWard.length > 0 && !isCustomStation && (
+                    <span className="text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                      {stationsForWard.length} Stations in {cleanWard}
+                    </span>
+                  )}
+                </div>
+
+                {isCustomStation ? (
+                  <div className="space-y-1.5">
+                    <input
+                      type="text"
+                      name="pollingStation"
+                      value={formData.pollingStation}
+                      onChange={handleChange}
+                      placeholder="Type your custom polling station or village..."
+                      autoFocus
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/70 border border-emerald-500/60 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsCustomStation(false);
+                        setFormData(prev => ({ ...prev, pollingStation: "" }));
+                      }}
+                      className="text-[11px] text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1 transition"
+                    >
+                      ← Back to {cleanWard} Station List
+                    </button>
+                  </div>
+                ) : (
+                  <select
+                    name="pollingStation"
+                    value={formData.pollingStation}
+                    onChange={(e) => {
+                      if (e.target.value === "__custom__") {
+                        setIsCustomStation(true);
+                        setFormData(prev => ({ ...prev, pollingStation: "" }));
+                      } else {
+                        handleChange(e);
+                      }
+                    }}
+                    disabled={!formData.ward}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700/80 text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="">
+                      {!formData.ward
+                        ? "Select your Ward above first..."
+                        : stationsForWard.length > 0
+                        ? "Select your Polling Station from list..."
+                        : "No polling stations found (Choose custom below)"}
+                    </option>
+                    {stationsForWard.map(st => (
+                      <option key={st} value={st} className="bg-slate-950 text-white">
+                        {st}
+                      </option>
+                    ))}
+                    <option value="__custom__" className="bg-slate-950 text-emerald-400 font-semibold">
+                      + Other / Custom Village (Type Manually)
+                    </option>
+                  </select>
+                )}
               </div>
 
               {/* Section 4: Volunteer Role Selector */}
