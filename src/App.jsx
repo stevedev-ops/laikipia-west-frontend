@@ -42,47 +42,73 @@ import LanguageToggle from "./components/LanguageToggle";
 // ── Sidebar nav definition ──────────────────────────────────────────────────
 const AGENT_NAV_GROUPS = [
   {
-    labelKey: "Agent Operations",
+    labelKey: "agent_ops",
     items: [
-      { to: "/agent-dashboard", icon: ShieldCheck, labelKey: "Agent Cockpit" },
-      { to: "/tally",           icon: ClipboardList, labelKey: "Form 34A PVT Tally" },
-      { to: "/incidents",       icon: AlertTriangle, labelKey: "Station Alerts & Incidents" },
-      { to: "/training",        icon: BookOpen,      labelKey: "Agent Legal Rights (Reg 79)" },
+      { to: "/agent-dashboard", icon: ShieldCheck, labelKey: "agent_cockpit" },
+      { to: "/tally",           icon: ClipboardList, labelKey: "pvt_tally" },
+      { to: "/incidents",       icon: AlertTriangle, labelKey: "station_alerts" },
+      { to: "/training",        icon: BookOpen,      labelKey: "agent_legal" },
     ],
   }
 ];
 
-const MOBILIZER_NAV_GROUPS = [
+const COORDINATOR_NAV_GROUPS = [
   {
-    labelKey: "Mobilizer Workspace",
+    labelKey: "leadership_command_desk",
     items: [
-      { to: "/dashboard",   icon: LayoutDashboard, labelKey: "My Mobilizer Hub" },
-      { to: "/hierarchy",   icon: ShieldCheck,     labelKey: "Campaign Hierarchy" },
-      { to: "/members",     icon: Users,           labelKey: "My Recruits Downline" },
-      { to: "/diary",       icon: Calendar,        labelKey: "Governor's Diary & Chamas" },
-      { to: "/enroll",      icon: UserPlus,        labelKey: "Enroll New Voter" },
+      { to: "/dashboard",   icon: LayoutDashboard, labelKey: "command_hub" },
+      { to: "/hierarchy",   icon: ShieldCheck,     labelKey: "command_hierarchy" },
+      { to: "/members",     icon: Users,           labelKey: "team_roster" },
+      { to: "/enroll",      icon: UserPlus,        labelKey: "enroll_supporter" },
+      { to: "/tally",       icon: ClipboardList,   labelKey: "pvt_audit" },
+      { to: "/diary",       icon: Calendar,        labelKey: "chama_diary" },
+      { to: "/incidents",   icon: AlertTriangle,   labelKey: "station_alerts" },
     ],
   },
   {
-    labelKey: "Grassroots Fieldwork",
+    labelKey: "field_ops_mobilization",
     items: [
-      { to: "/canvass",   icon: BookOpen,      labelKey: "Panna Canvassing" },
-      { to: "/transport", icon: Truck,         labelKey: "Boda-Boda Logistics" },
-      { to: "/phonebank", icon: Phone,         labelKey: "Virtual Phone Bank" },
-      { to: "/matcher",   icon: Link2,         labelKey: "Contact Matcher" },
+      { to: "/canvass",   icon: BookOpen,      labelKey: "canvassing" },
+      { to: "/transport", icon: Truck,         labelKey: "transport_boda" },
+      { to: "/phonebank", icon: Phone,         labelKey: "phone_bank" },
+      { to: "/matcher",   icon: Link2,         labelKey: "contact_matcher" },
     ],
   },
 ];
 
-const NAV_GROUPS = [...AGENT_NAV_GROUPS, ...MOBILIZER_NAV_GROUPS];
+const MOBILIZER_NAV_GROUPS = [
+  {
+    labelKey: "mobilizer_workspace",
+    items: [
+      { to: "/dashboard",   icon: LayoutDashboard, labelKey: "mobilizer_hub" },
+      { to: "/members",     icon: Users,           labelKey: "recruits_downline" },
+      { to: "/diary",       icon: Calendar,        labelKey: "chama_diary" },
+      { to: "/enroll",      icon: UserPlus,        labelKey: "enroll_voter" },
+    ],
+  },
+  {
+    labelKey: "grassroots_fieldwork",
+    items: [
+      { to: "/canvass",   icon: BookOpen,      labelKey: "canvassing" },
+      { to: "/transport", icon: Truck,         labelKey: "transport_boda" },
+      { to: "/phonebank", icon: Phone,         labelKey: "phone_bank" },
+      { to: "/matcher",   icon: Link2,         labelKey: "contact_matcher" },
+    ],
+  },
+];
+
+const NAV_GROUPS = [...COORDINATOR_NAV_GROUPS, ...MOBILIZER_NAV_GROUPS, ...AGENT_NAV_GROUPS];
 
 // ── Sidebar component ───────────────────────────────────────────────────────
 function MemberSidebar({ profile, onLogout, isOpen, onClose }) {
   const { t } = useLanguage();
   const isSecurityOnly = profile?.is_security_only;
+  const isCoordinator = ['polling_centre_coordinator', 'ward_coordinator', 'sub_county_coordinator', 'pillar', 'county_manager', 'governor'].includes(profile?.campaign_role);
+  const isAgent = !isCoordinator && (profile?.is_agent || isSecurityOnly);
   
-  const isAgent = profile?.is_agent;
-  const filteredNavGroups = isAgent ? AGENT_NAV_GROUPS : MOBILIZER_NAV_GROUPS;
+  const filteredNavGroups = isCoordinator 
+    ? COORDINATOR_NAV_GROUPS 
+    : (isAgent ? AGENT_NAV_GROUPS : MOBILIZER_NAV_GROUPS);
 
   return (
     <>
@@ -174,10 +200,19 @@ function MemberSidebar({ profile, onLogout, isOpen, onClose }) {
                 <div className="flex items-center gap-3 mb-3 mt-3">
                   <div className="min-w-0">
                     <p className="text-xs font-black uppercase tracking-widest truncate">
-                      {profile?.full_name || (profile?.is_security_only || profile?.security_rank ? "Security Personnel" : "Mobilizer")}
+                      {profile?.full_name || "DCP Member"}
                     </p>
-                    <p className="text-[9px] text-slate-400 font-bold tracking-widest uppercase truncate">
-                      {profile?.ward || "DCP Member"}
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="text-[9px] font-black uppercase tracking-wider text-amber-300 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20 truncate">
+                        ★ {profile?.campaign_role ? profile.campaign_role.replace(/_/g, ' ') : (isAgent ? "Security Agent" : "Grassroots Mobilizer")}
+                      </span>
+                    </div>
+                    <p className="text-[9px] text-slate-400 font-bold tracking-widest uppercase truncate mt-1">
+                      {profile?.campaign_role === 'sub_county_coordinator'
+                        ? `${profile?.assigned_sub_county || 'Laikipia West'} Constituency`
+                        : profile?.campaign_role === 'ward_coordinator'
+                        ? `${profile?.assigned_ward || profile?.ward} Ward`
+                        : (profile?.assigned_polling_centre || profile?.polling_station || profile?.ward || "Laikipia County")}
                     </p>
                   </div>
                 </div>
@@ -263,26 +298,35 @@ function GlobalSyncIndicator() {
 
 // ── Mobile Bottom Navigation Bar (Thumb-Friendly 1-Handed Operation) ───────────
 function MobileBottomNav({ profile }) {
+  const { t } = useLanguage();
   const location = useLocation();
-  const isAgent = profile?.is_agent;
+  const isCoordinator = ['polling_centre_coordinator', 'ward_coordinator', 'sub_county_coordinator', 'pillar', 'county_manager', 'governor'].includes(profile?.campaign_role);
+  const isAgent = !isCoordinator && (profile?.is_agent || profile?.is_security_only);
 
-  const items = isAgent
+  const items = isCoordinator
     ? [
-        { to: "/agent-dashboard", label: "Cockpit", icon: ShieldCheck },
-        { to: "/tally",           label: "34A Tally", icon: ClipboardList },
-        { to: "/incidents",       label: "Alerts",    icon: AlertTriangle },
-        { to: "/training",        label: "Reg 79",    icon: BookOpen },
+        { to: "/dashboard",   labelKey: "hub",         icon: LayoutDashboard },
+        { to: "/hierarchy",   labelKey: "hierarchy",   icon: ShieldCheck },
+        { to: "/members",     labelKey: "roster",      icon: Users },
+        { to: "/enroll",      labelKey: "enrol_short",  icon: UserPlus },
+      ]
+    : isAgent
+    ? [
+        { to: "/agent-dashboard", labelKey: "cockpit",   icon: ShieldCheck },
+        { to: "/tally",           labelKey: "tally",     icon: ClipboardList },
+        { to: "/incidents",       labelKey: "alerts",    icon: AlertTriangle },
+        { to: "/training",        labelKey: "training",  icon: BookOpen },
       ]
     : [
-        { to: "/dashboard",   label: "Hub",       icon: LayoutDashboard },
-        { to: "/members",     label: "Recruits",  icon: Users },
-        { to: "/diary",       label: "Diary",     icon: Calendar },
-        { to: "/enroll",      label: "Enroll",    icon: UserPlus },
+        { to: "/dashboard",   labelKey: "hub",         icon: LayoutDashboard },
+        { to: "/members",     labelKey: "recruits_downline",  icon: Users },
+        { to: "/diary",       labelKey: "chama_diary", icon: Calendar },
+        { to: "/enroll",      labelKey: "enroll_voter",icon: UserPlus },
       ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-2 py-1.5 flex items-center justify-around md:hidden shadow-lg shadow-slate-900/10">
-      {items.map(({ to, label, icon: Icon }) => {
+      {items.map(({ to, labelKey, icon: Icon }) => {
         const active = location.pathname === to;
         return (
           <NavLink
@@ -296,7 +340,7 @@ function MobileBottomNav({ profile }) {
           >
             <Icon size={20} className={active ? "text-emerald-600 stroke-[2.5]" : "stroke-[1.8]"} />
             <span className={`text-[10px] tracking-tight uppercase mt-0.5 ${active ? "font-black" : "font-medium"}`}>
-              {label}
+              {t(labelKey)}
             </span>
           </NavLink>
         );
@@ -445,10 +489,29 @@ function App() {
     return <Admin onLogout={handleLogout} />;
   };
 
-  const activeNavList = memberProfile?.is_agent ? AGENT_NAV_GROUPS : MOBILIZER_NAV_GROUPS;
-  const currentPageLabel = activeNavList
+  const isCoord = ['polling_centre_coordinator', 'ward_coordinator', 'sub_county_coordinator', 'pillar', 'county_manager', 'governor'].includes(memberProfile?.campaign_role);
+  const activeNavList = isCoord ? COORDINATOR_NAV_GROUPS : (memberProfile?.is_agent ? AGENT_NAV_GROUPS : MOBILIZER_NAV_GROUPS);
+  let currentPageLabel = activeNavList
     .flatMap(g => g.items)
     .find(i => i.to === location.pathname)?.labelKey || (memberProfile?.is_agent ? "Agent Cockpit" : "member_portal");
+
+  const ROLE_HUB_TITLES = {
+    polling_centre_coordinator: "Polling Centre Command Hub",
+    ward_coordinator: "Ward Coordinator Command Hub",
+    sub_county_coordinator: "Sub-County Command Hub",
+    pillar: "Campaign Pillar Command Hub",
+    station_mobilizer: "Station Mobilizer Hub",
+    root_mobilizer: "Root Mobilizer Hub",
+  };
+
+  if (location.pathname === "/dashboard" && memberProfile?.campaign_role) {
+    if (memberProfile.campaign_role === "pillar" && memberProfile.pillar_category) {
+      const pNames = { youth: "Youth Pillar", women: "Women Pillar", elders_business: "Elders & Business", special_interest: "Special Interest" };
+      currentPageLabel = (pNames[memberProfile.pillar_category] || "Campaign Pillar") + " Command Hub";
+    } else if (ROLE_HUB_TITLES[memberProfile.campaign_role]) {
+      currentPageLabel = ROLE_HUB_TITLES[memberProfile.campaign_role];
+    }
+  }
 
   return (
     <div className={`min-h-screen w-full font-sans transition-colors duration-500 flex flex-col ${
@@ -542,7 +605,7 @@ function App() {
             <Route path="/agent-dashboard" element={authed(<AgentDashboard memberId={memberId} />)} />
             <Route path="/dashboard"  element={authed(<Dashboard  memberId={memberId} onLogout={handleLogout} />)} />
             <Route path="/diary"      element={authed(<Diary user={memberProfile} />)} />
-            <Route path="/members"    element={authed(<Members    memberId={memberId} isAdmin={false} />)} />
+            <Route path="/members"    element={authed(<Members    memberId={memberId} profile={memberProfile} isAdmin={false} />)} />
             <Route path="/reports"    element={authed(<Reports    memberId={memberId} />)} />
             <Route path="/enroll"     element={authed(<Enrollment memberId={memberId} />)} />
             <Route path="/coverage"   element={authed(<PollingCoverage />)} />

@@ -1,3 +1,4 @@
+import { cleanCentreName } from "../lib/constants";
 import { useLanguage } from '../contexts/LanguageContext';
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -65,7 +66,7 @@ function RideCard({ ride, onUpdate }) {
            <div className="w-4 h-4 shrink-0 sm:hidden" />
            <div>
              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Destination</p>
-             <p className="font-bold text-slate-700 text-sm">{ride.polling_station || ride.ward}</p>
+             <p className="font-bold text-slate-700 text-sm">{cleanCentreName(ride.polling_station) || ride.ward}</p>
            </div>
         </div>
       </div>
@@ -156,9 +157,9 @@ export default function Transport({ memberId, isAdmin = false }) {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_100%,rgba(251,146,60,0.15)_0%,transparent_60%)] pointer-events-none" />
           <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 md:gap-4">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-400 mb-1">Election Day · Boda-Boda Network</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-400 mb-1">{t("boda_network_title")}</p>
               <h1 className="text-3xl font-black text-white italic uppercase">{t('trans_coordinator')}</h1>
-              <p className="text-slate-400 text-sm mt-1">Get every DCP voter to the polls — no one left behind</p>
+              <p className="text-slate-400 text-sm mt-1">{t("boda_network_subtitle")}</p>
             </div>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
               <div className="grid grid-cols-3 gap-2">
@@ -182,7 +183,7 @@ export default function Transport({ memberId, isAdmin = false }) {
           {showRequest && (
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
               className="bg-amber-50 border border-amber-200 rounded-3xl p-6 space-y-4">
-              <p className="text-[10px] font-black uppercase tracking-widest text-amber-700">Request a Ride to the Polls</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-amber-700">{t("request_ride_polls")}</p>
               <div className="grid sm:grid-cols-3 gap-3">
                 <input value={form.pickup_location} onChange={e => setForm(f => ({ ...f, pickup_location: e.target.value }))}
                   placeholder="Your pickup location / village"
@@ -228,7 +229,7 @@ export default function Transport({ memberId, isAdmin = false }) {
         ) : rides.length === 0 ? (
           <div className="bg-white border border-slate-200 rounded-3xl p-16 text-center">
             <Bike className="w-12 h-12 text-slate-200 mx-auto mb-4" />
-            <p className="font-black text-slate-500 uppercase tracking-tight text-lg">No Transport Requests</p>
+            <p className="font-black text-slate-500 uppercase tracking-tight text-lg">{t("no_transport_requests")}</p>
             <p className="text-slate-400 text-sm mt-2">Supporters needing rides will appear here on election day.</p>
           </div>
         ) : (

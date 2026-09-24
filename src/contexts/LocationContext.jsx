@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '../lib/api';
+import { cleanCentreName } from '../lib/constants';
 
 const LocationContext = createContext(null);
 
@@ -17,10 +18,24 @@ export function LocationProvider({ children }) {
         if (error) throw error;
         
         if (data && mounted) {
-          setWardStationMap(data);
+          // Clean, normalize and deduplicate all stations per ward into single clean schools/centres
+          const sanitizedMap = {};
+          Object.entries(data).forEach(([wardName, stations]) => {
+            const rawList = Array.isArray(stations) ? stations : [];
+            const cleanList = Array.from(
+              new Set(
+                rawList
+                  .map(s => cleanCentreName(s))
+                  .filter(Boolean)
+              )
+            ).sort((a, b) => a.localeCompare(b));
+            sanitizedMap[wardName] = cleanList;
+          });
+
+          setWardStationMap(sanitizedMap);
           
           // Transform map into the expected array format for compatibility
-          const formattedWards = Object.entries(data).map(([wardName, stations]) => ({
+          const formattedWards = Object.entries(sanitizedMap).map(([wardName, stations]) => ({
             id: wardName.toLowerCase().replace(/\s+/g, '_'),
             name: wardName,
             label: `${wardName} Ward`,

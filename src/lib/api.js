@@ -134,7 +134,10 @@ export const api = {
   },
 
   getMembers: (params = {}) => {
-    const query = new URLSearchParams(params).toString();
+    const cleanParams = Object.fromEntries(
+      Object.entries(params).filter(([_, v]) => v !== undefined && v !== null && v !== '' && v !== 'undefined')
+    );
+    const query = new URLSearchParams(cleanParams).toString();
     return request(`/members${query ? `?${query}` : ''}`);
   },
 
@@ -368,8 +371,10 @@ export const api = {
     request('/members/check-status', { method: 'POST', body: { national_id, phone } }),
 
   // ─── 7-TIER CAMPAIGN HIERARCHY & COMMAND ──────────────────────────────────
-  getHierarchyStats: () =>
-    request('/hierarchy/stats'),
+  getHierarchyStats: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/hierarchy/stats${query ? `?${query}` : ''}`);
+  },
   getHierarchyTree: (params = {}) => {
     const query = new URLSearchParams(params).toString();
     return request(`/hierarchy/tree${query ? `?${query}` : ''}`);

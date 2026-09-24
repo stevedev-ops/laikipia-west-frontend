@@ -1,3 +1,4 @@
+import { cleanCentreName } from "../lib/constants";
 import { useLanguage } from '../contexts/LanguageContext';
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -84,12 +85,12 @@ function AgentCard({ agent, onCheckIn, onMealConfirm }) {
         <MapPin className="w-4 h-4 text-emerald-600 shrink-0" />
         <div className="min-w-0">
           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{t('pa_assigned_center')}</p>
-          <p className="font-bold text-slate-800 text-xs sm:text-sm truncate">{agent.polling_station}</p>
+          <p className="font-bold text-slate-800 text-xs sm:text-sm truncate">{cleanCentreName(agent.polling_station)}</p>
           <p className="text-[10px] font-bold text-slate-500 uppercase">{agent.ward}</p>
         </div>
       </div>
 
-      {/* ── Option 1: Digital Meal Welfare Vouchers (Breakfast & Lunch) ── */}
+      {/* ── Option 1: Digital Meal Welfare Vouchers ({t("breakfast")} & {t("lunch")}) ── */}
       <div className="p-3 bg-slate-900 text-white rounded-xl space-y-2.5">
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400 flex items-center gap-1.5">
@@ -99,7 +100,7 @@ function AgentCard({ agent, onCheckIn, onMealConfirm }) {
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          {/* Breakfast Toggle */}
+          {/* {t("breakfast")} Toggle */}
           <button
             onClick={handleBreakfast}
             disabled={loadingBreakfast}
@@ -110,10 +111,10 @@ function AgentCard({ agent, onCheckIn, onMealConfirm }) {
             }`}
           >
             <Coffee size={12} />
-            {loadingBreakfast ? "..." : agent.breakfast_received ? "🥐 Breakfast In ✓" : "🥐 Get Breakfast"}
+            {loadingBreakfast ? "..." : agent.breakfast_received ? `🥐 ${t("breakfast")} In ✓` : `🥐 Get ${t("breakfast")}`}
           </button>
 
-          {/* Lunch Toggle */}
+          {/* {t("lunch")} Toggle */}
           <button
             onClick={handleLunch}
             disabled={loadingLunch}
@@ -124,7 +125,7 @@ function AgentCard({ agent, onCheckIn, onMealConfirm }) {
             }`}
           >
             <Sandwich size={12} />
-            {loadingLunch ? "..." : agent.lunch_received ? "🍱 Lunch In ✓" : "🍱 Get Lunch"}
+            {loadingLunch ? "..." : agent.lunch_received ? `🍱 ${t("lunch")} In ✓` : `🍱 Get ${t("lunch")}`}
           </button>
         </div>
       </div>
@@ -232,8 +233,8 @@ export default function PollingAgents() {
         <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.35em] text-emerald-400 mb-1">HQ War Room · Election Day</p>
-            <h1 className="text-2xl sm:text-3xl font-black italic uppercase">Agent Deployment & Catering Welfare</h1>
-            <p className="text-slate-300 text-xs sm:text-sm mt-1">Live polling station check-ins, breakfast, and lunch verification across Laikipia</p>
+            <h1 className="text-2xl sm:text-3xl font-black italic uppercase">{t("agent_welfare_title")}</h1>
+            <p className="text-slate-300 text-xs sm:text-sm mt-1">{t("agent_welfare_desc")}</p>
           </div>
 
           {/* Welfare Progress Cards */}
@@ -244,11 +245,11 @@ export default function PollingAgents() {
             </div>
             <div className="bg-emerald-500/20 border border-emerald-500/30 rounded-2xl p-3 text-center">
               <p className="text-xl sm:text-2xl font-black text-emerald-300">{breakfastCount}/{totalAgents}</p>
-              <p className="text-[9px] font-black text-emerald-200 uppercase tracking-widest">🥐 Breakfast</p>
+              <p className="text-[9px] font-black text-emerald-200 uppercase tracking-widest">🥐 {t("breakfast")}</p>
             </div>
             <div className="bg-blue-500/20 border border-blue-500/30 rounded-2xl p-3 text-center">
               <p className="text-xl sm:text-2xl font-black text-blue-300">{lunchCount}/{totalAgents}</p>
-              <p className="text-[9px] font-black text-blue-200 uppercase tracking-widest">🍱 Lunch</p>
+              <p className="text-[9px] font-black text-blue-200 uppercase tracking-widest">🍱 {t("lunch")}</p>
             </div>
           </div>
         </div>
@@ -263,7 +264,7 @@ export default function PollingAgents() {
           {/* Quick Alert Warning */}
           {totalAgents > lunchCount && (
             <span className="text-[11px] font-bold text-amber-300 flex items-center gap-1.5 bg-amber-500/20 px-3 py-1.5 rounded-xl border border-amber-400/30">
-              <Flame size={14} className="animate-pulse text-amber-400" /> {totalAgents - lunchCount} Agents Awaiting Lunch
+              <Flame size={14} className="animate-pulse text-amber-400" /> {totalAgents - lunchCount} Agents Awaiting {t("lunch")}
             </span>
           )}
         </div>
@@ -322,8 +323,8 @@ export default function PollingAgents() {
           </span>
           {[
             { id: 'all', label: 'All Agents' },
-            { id: 'missing_lunch', label: '🚨 Awaiting Lunch' },
-            { id: 'missing_breakfast', label: '🥐 Awaiting Breakfast' },
+            { id: 'missing_lunch', label: '🚨 Awaiting {t("lunch")}' },
+            { id: 'missing_breakfast', label: '🥐 Awaiting {t("breakfast")}' },
             { id: 'fed', label: '✅ Fully Fed' },
           ].map(f => (
             <button

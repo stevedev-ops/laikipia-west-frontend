@@ -1,3 +1,4 @@
+import { cleanCentreName } from "../lib/constants";
 import { useLanguage } from '../contexts/LanguageContext';
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -35,9 +36,9 @@ export default function ContactMatcher() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_100%_100%,rgba(0,132,61,0.2)_0%,transparent_60%)] pointer-events-none" />
           <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-400 mb-1">Friends & Family Network</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-400 mb-1">{t("friends_family_network")}</p>
               <h1 className="text-3xl font-black text-white italic uppercase">{t('cm_title')}</h1>
-              <p className="text-slate-400 text-sm mt-1">Search the Laikipia voter roll for relatives to recruit.</p>
+              <p className="text-slate-400 text-sm mt-1">{t("search_laikipia_voter_roll")}</p>
             </div>
             <div className="w-16 h-16 rounded-3xl bg-dcp-green/20 border border-dcp-green/30 flex items-center justify-center">
               <Users className="text-dcp-green w-8 h-8" />
@@ -54,7 +55,7 @@ export default function ContactMatcher() {
                 type="text" 
                 value={query} 
                 onChange={e => setQuery(e.target.value)}
-                placeholder="Enter a surname (e.g. Kariuki, Njoroge)..."
+                placeholder={t("enter_surname")}
                 className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-lg font-bold outline-none focus:border-dcp-green/50 transition"
               />
             </div>
@@ -88,7 +89,7 @@ export default function ContactMatcher() {
                         </p>
                         <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 space-y-0.5">
                           <p>ID: {v.id_number || 'N/A'}</p>
-                          <p className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {v.ward} · {v.polling_station}</p>
+                          <p className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {v.ward} · {cleanCentreName(v.polling_station)}</p>
                         </div>
                       </div>
                       

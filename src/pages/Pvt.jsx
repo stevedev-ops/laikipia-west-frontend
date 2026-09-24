@@ -1,3 +1,4 @@
+import { cleanCentreName } from "../lib/constants";
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { BarChart3, TrendingUp, Send, CheckCircle2, AlertTriangle, MapPin, ShieldCheck, Plus, Download } from "lucide-react";
@@ -89,8 +90,8 @@ export default function Pvt({ isAdmin = false }) {
           <div className={`absolute inset-0 pointer-events-none ${dcpLeading ? "bg-[radial-gradient(circle_at_50%_0%,rgba(0,132,61,0.3)_0%,transparent_60%)]" : "bg-[radial-gradient(circle_at_50%_0%,rgba(239,68,68,0.15)_0%,transparent_60%)]"}`} />
           <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-400 mb-1">Parallel Vote Tabulation · Form 34A</p>
-              <h1 className="text-3xl font-black text-white italic uppercase">Live Results</h1>
+              <p className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-400 mb-1">{t("pvt_title")}</p>
+              <h1 className="text-3xl font-black text-white italic uppercase">{t("live_results")}</h1>
               <p className="text-slate-400 text-sm mt-1">
                 {summary ? `${summary.stations_reported} stations reported` : "Awaiting field reports..."}
               </p>
@@ -186,7 +187,7 @@ export default function Pvt({ isAdmin = false }) {
         {/* Aggregate Results */}
         {summary && summary.stations_reported > 0 && (
           <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-5">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Aggregate Tally · All Stations</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t("aggregate_tally")}</p>
             <div className="space-y-4">
               <TallyBar label="DCP" count={summary.dcp_total} total={summary.total_cast} color="bg-dcp-green" />
               <TallyBar label="UDA" count={summary.uda_total} total={summary.total_cast} color="bg-red-400" />
@@ -195,15 +196,15 @@ export default function Pvt({ isAdmin = false }) {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-100">
               <div className="text-center">
                 <p className="text-2xl font-black text-slate-900">{summary.total_cast.toLocaleString()}</p>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Votes Cast</p>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{t("votes_cast")}</p>
               </div>
               <div className="text-center">
                 <p className={`text-2xl font-black ${dcpLeading ? "text-dcp-green" : "text-red-500"}`}>{summary.dcp_pct}%</p>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">DCP Share</p>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{t("dcp_share")}</p>
               </div>
               <div className="text-center">
                 <p className="text-2xl font-black text-slate-900">{summary.stations_reported}</p>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Stations In</p>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{t("stations_in")}</p>
               </div>
             </div>
           </div>
@@ -219,7 +220,7 @@ export default function Pvt({ isAdmin = false }) {
           ) : records.length === 0 ? (
             <div className="p-12 text-center">
               <BarChart3 className="w-10 h-10 text-slate-200 mx-auto mb-3" />
-              <p className="font-black text-slate-400 uppercase tracking-tight">No results submitted yet</p>
+              <p className="font-black text-slate-400 uppercase tracking-tight">{t("no_results_yet")}</p>
               <p className="text-slate-300 text-xs mt-1">Agents at polling stations submit Form 34A tallies here</p>
             </div>
           ) : records.map((r, i) => {
@@ -228,7 +229,7 @@ export default function Pvt({ isAdmin = false }) {
               <div key={r.id} className={`flex items-center justify-between px-6 py-4 border-b border-slate-100 last:border-b-0 gap-4 ${dcpWin ? "bg-dcp-green/5" : "bg-red-50/30"}`}>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="font-black text-slate-900 uppercase tracking-tight text-sm truncate">{r.polling_station}</p>
+                    <p className="font-black text-slate-900 uppercase tracking-tight text-sm truncate">{cleanCentreName(r.polling_station)}</p>
                     {r.form_34a_image && (
                       <a href={r.form_34a_image} target="_blank" rel="noreferrer" className="text-[9px] px-2 py-0.5 rounded-md bg-blue-100 text-blue-600 font-bold uppercase tracking-widest hover:bg-blue-200">
                         View 34A

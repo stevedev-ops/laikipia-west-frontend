@@ -31,14 +31,91 @@ import { toast } from 'sonner';
 
 export default function Diary({ user }) {
   const { t } = useLanguage();
-  const isAdmin = user?.is_admin || user?.is_staff || user?.is_superuser;
+  const isAdmin = Boolean(
+    user?.is_admin || 
+    user?.is_staff || 
+    user?.is_superuser || 
+    user?.campaign_role === 'governor' || 
+    user?.campaign_role === 'county_manager' || 
+        user?.role === 'admin'
+  );
+
+  const handleQuickApprove = async (func) => {
+    try {
+      const res = await api.updateFunction(func.id, {
+        status: 'attending',
+        admin_notes: 'Governor confirmed attendance in person.'
+      });
+      if (res?.error) throw new Error(res.error.error || res.error.message || "Failed to approve event");
+      toast.success(`🎉 Governor confirmed attendance for "${func.title}"!`);
+      fetchFunctions();
+    } catch (err) {
+      toast.error(err.message || "Failed to confirm attendance.");
+    }
+  };
+
+  const handleQuickDecline = (func) => {
+    setSelectedFunction(func);
+    setRsvpData({
+      status: 'declined',
+      delegate_name: '',
+      delegate_phone: '',
+      admin_notes: func.admin_notes || 'Governor sends official regrets due to prior schedule.'
+    });
+    setShowRsvpModal(true);
+  };
+
+  const handleQuickDelegate = (func) => {
+    setSelectedFunction(func);
+    setRsvpData({
+      status: 'delegated',
+      delegate_name: func.delegate_name || '',
+      delegate_phone: func.delegate_phone || '',
+      admin_notes: func.admin_notes || 'Delegate assigned on behalf of Governor.'
+    });
+    setShowRsvpModal(true);
+  };
   
   const [functions, setFunctions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedConstituency, setSelectedConstituency] = useState('all');
+  
+  const userRole = user?.campaign_role || 'station_mobilizer';
+  const userSc = user?.assigned_sub_county || '';
+  const userWard = user?.assigned_ward || user?.ward || '';
+
+  // Initial region filter based on authority
+  const initialRegion = (!isAdmin && userRole === 'sub_county_coordinator' && userSc) 
+    ? userSc 
+    : (!isAdmin && userWard && (user?.assigned_sub_county || 'Laikipia West')) || 'all';
+
+  const [selectedConstituency, setSelectedConstituency] = useState(initialRegion);
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedDate, setSelectedDate] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [timeline, setTimeline] = useState('upcoming'); // 'upcoming' | 'history'
+
+  const formatDateDisplay = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+      const d = new Date(dateStr + 'T00:00:00');
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const isToday = d.getTime() === today.getTime();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const isTomorrow = d.getTime() === tomorrow.getTime();
+
+      const options = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
+      const formatted = d.toLocaleDateString('en-KE', options);
+
+      if (isToday) return `🔥 Today (${formatted})`;
+      if (isTomorrow) return `⚡ Tomorrow (${formatted})`;
+      return `📅 ${formatted}`;
+    } catch {
+      return `📅 ${dateStr}`;
+    }
+  };
   
   // Modals
   const [showAddModal, setShowAddModal] = useState(false);
@@ -82,6 +159,8 @@ export default function Diary({ user }) {
       if (selectedConstituency !== 'all') params.constituency = selectedConstituency;
       if (selectedStatus !== 'all') params.status = selectedStatus;
       if (selectedCategory !== 'all') params.type = selectedCategory;
+      if (selectedDate) params.date = selectedDate;
+      params.timeline = timeline;
       
       const { data, error } = await api.getFunctions(params);
       if (error) throw error;
@@ -96,7 +175,7 @@ export default function Diary({ user }) {
 
   useEffect(() => {
     fetchFunctions();
-  }, [selectedConstituency, selectedStatus, selectedCategory]);
+  }, [selectedConstituency, selectedStatus, selectedCategory, selectedDate, timeline]);
 
   // Handle Creating a Function
   const handleCreate = async (e) => {
@@ -178,17 +257,38 @@ export default function Diary({ user }) {
     setShowRsvpModal(true);
   };
 
-  // Filtered list by client-side search query
+  // Filtered list by client-side search query, selected date, and timeline guarantee
   const filteredFunctions = useMemo(() => {
-    return functions.filter(f => {
-      const matchSearch = 
-        f.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        f.venue.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (f.ward && f.ward.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        f.contact_person_name.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchSearch;
-    });
-  }, [functions, searchQuery]);
+    const todayStr = new Date().toISOString().split('T')[0];
+    return functions
+      .filter(f => {
+        const matchSearch = 
+          f.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          f.venue.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (f.ward && f.ward.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          f.contact_person_name.toLowerCase().includes(searchQuery.toLowerCase());
+        if (!matchSearch) return false;
+
+        if (selectedDate && f.event_date !== selectedDate) {
+          return false;
+        }
+
+        // Strict timeline boundary: past events only in history
+        if (timeline === 'upcoming') {
+          return f.event_date >= todayStr;
+        } else if (timeline === 'history') {
+          return f.event_date < todayStr;
+        }
+        return true;
+      })
+      .sort((a, b) => {
+        if (timeline === 'upcoming') {
+          return new Date(a.event_date) - new Date(b.event_date);
+        } else {
+          return new Date(b.event_date) - new Date(a.event_date);
+        }
+      });
+  }, [functions, searchQuery, selectedDate, timeline]);
 
   // Compute Upcoming D-Day Reminders (Functions today or within next 72 hours)
   const upcomingReminders = useMemo(() => {
@@ -236,27 +336,40 @@ export default function Diary({ user }) {
         </button>
       </div>
 
-      {/* ── Constituency Selector Bar ── */}
-      <div className="bg-white p-2 sm:p-3 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-1.5 flex-wrap">
-        <label htmlFor="region-select" className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 shrink-0 flex items-center gap-1.5">
-          <Building size={14} className="text-slate-500" /> Region:
+      {/* ── Constituency Selector Bar (Scoped to Authority) ── */}
+      <div className="bg-white p-2 sm:p-3 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-2 flex-wrap">
+        <label htmlFor="region-select" className="text-[11px] font-black text-slate-700 uppercase tracking-wider px-2 shrink-0 flex items-center gap-1.5">
+          <Building size={14} className="text-emerald-600" /> Jurisdiction Scope:
         </label>
-        <div className="relative min-w-[200px] sm:w-64">
-          <select
-            id="region-select"
-            value={selectedConstituency}
-            onChange={(e) => setSelectedConstituency(e.target.value)}
-            className="w-full appearance-none bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl px-3.5 py-2 pr-9 text-xs font-bold text-slate-800 transition cursor-pointer focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-          >
-            <option value="all">🌍 {t('all_laikipia')}</option>
-            <option value="Laikipia East">📍 {t('laikipia_east')}</option>
-            <option value="Laikipia West">📍 {t('laikipia_west')}</option>
-            <option value="Laikipia North">📍 {t('laikipia_north')}</option>
-          </select>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
-            <ChevronDown size={14} />
+        {isAdmin ? (
+          <div className="relative min-w-[200px] sm:w-64">
+            <select
+              id="region-select"
+              value={selectedConstituency}
+              onChange={(e) => setSelectedConstituency(e.target.value)}
+              className="w-full appearance-none bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl px-3.5 py-2 pr-9 text-xs font-bold text-slate-800 transition cursor-pointer focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+            >
+              <option value="all">🌍 {t('all_laikipia')}</option>
+              <option value="Laikipia East">📍 {t('laikipia_east')}</option>
+              <option value="Laikipia West">📍 {t('laikipia_west')}</option>
+              <option value="Laikipia North">📍 {t('laikipia_north')}</option>
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
+              <ChevronDown size={14} />
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-950 rounded-xl text-xs font-black flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+            <span>
+              {userRole === 'sub_county_coordinator' 
+                ? `${userSc || 'Laikipia West'} Constituency Mandate`
+                : userRole === 'ward_coordinator'
+                ? `${userWard || 'Ward'} Division Mandate`
+                : `${userWard || 'Local'} Station / Grassroots`}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* ── D-Day Reminders Banner ({t('diary_next_72h')}) ── */}
@@ -338,11 +451,38 @@ export default function Diary({ user }) {
         </div>
       )}
 
+      {/* ── Timeline Switcher (Active Upcoming vs Concluded History) ── */}
+      <div className="flex items-center gap-1.5 sm:gap-3 bg-slate-100 p-1.5 rounded-2xl border border-slate-200/80 w-full sm:w-fit">
+        <button
+          onClick={() => setTimeline('upcoming')}
+          className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2.5 sm:py-2 rounded-xl text-xs font-black uppercase tracking-wider transition ${
+            timeline === 'upcoming'
+              ? 'bg-slate-900 text-white shadow-md'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <CalendarIcon size={14} className={timeline === 'upcoming' ? 'text-emerald-400' : 'text-slate-500'} />
+          <span>Active & Upcoming</span>
+        </button>
+
+        <button
+          onClick={() => setTimeline('history')}
+          className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2.5 sm:py-2 rounded-xl text-xs font-black uppercase tracking-wider transition ${
+            timeline === 'history'
+              ? 'bg-slate-900 text-white shadow-md'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <Clock size={14} className={timeline === 'history' ? 'text-amber-400' : 'text-slate-500'} />
+          <span>Concluded History</span>
+        </button>
+      </div>
+
       {/* ── Status Tabs & Search Filters ── */}
       <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm space-y-4">
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-          {/* Status Tabs */}
-          <div className="flex items-center gap-1.5 flex-wrap pb-1 md:pb-0">
+          {/* Status Tabs (Swipeable on Mobile) */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none max-w-full">
             {[
               { id: 'all', label: t('diary_all_agendas') },
               { id: 'attending', label: '👑 Confirmed' },
@@ -377,8 +517,75 @@ export default function Diary({ user }) {
           </div>
         </div>
 
-        {/* Category Pills */}
-        <div className="flex items-center gap-1.5 flex-wrap pt-2 border-t border-slate-100">
+        {/* Date Filter Toolbar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-100">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider flex items-center gap-1">
+              <CalendarIcon size={14} className="text-emerald-600" /> Filter By Date:
+            </span>
+
+            {/* Quick Date Presets */}
+            <button
+              onClick={() => setSelectedDate('')}
+              className={`px-3 py-1 rounded-xl text-xs font-bold transition ${
+                !selectedDate ? 'bg-slate-900 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              All Dates
+            </button>
+            <button
+              onClick={() => {
+                const today = new Date().toISOString().split('T')[0];
+                setSelectedDate(today);
+                setTimeline('upcoming');
+              }}
+              className={`px-3 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1 ${
+                selectedDate === new Date().toISOString().split('T')[0]
+                  ? 'bg-amber-500 text-white font-black shadow-sm'
+                  : 'bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100'
+              }`}
+            >
+              🔥 Today
+            </button>
+            <button
+              onClick={() => {
+                const tom = new Date();
+                tom.setDate(tom.getDate() + 1);
+                setSelectedDate(tom.toISOString().split('T')[0]);
+                setTimeline('upcoming');
+              }}
+              className={`px-3 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1 ${
+                selectedDate === (() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().split('T')[0]; })()
+                  ? 'bg-blue-600 text-white font-black shadow-sm'
+                  : 'bg-blue-50 text-blue-800 border border-blue-200 hover:bg-blue-100'
+              }`}
+            >
+              ⚡ Tomorrow
+            </button>
+          </div>
+
+          {/* Specific Date Picker Input */}
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+            />
+            {selectedDate && (
+              <button
+                onClick={() => setSelectedDate('')}
+                className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition"
+                title="Clear date filter"
+              >
+                Clear ✕
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Category Pills (Swipeable on Mobile) */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pt-2 border-t border-slate-100 scrollbar-none max-w-full">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">
             Category:
           </span>
@@ -462,12 +669,12 @@ export default function Diary({ user }) {
 
                   {/* Title & Timing */}
                   <h3 className="font-bold text-slate-900 text-base leading-snug">{func.title}</h3>
-                  <div className="flex items-center gap-3 text-xs text-slate-500 mt-2 font-medium">
-                    <span className="flex items-center gap-1 text-emerald-700 font-bold">
-                      <CalendarIcon size={14} /> {func.event_date}
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 mt-2 font-medium">
+                    <span className="flex items-center gap-1 text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200/60 font-black text-xs">
+                      {formatDateDisplay(func.event_date)}
                     </span>
-                    <span className="flex items-center gap-1">
-                      <Clock size={14} /> {func.start_time}
+                    <span className="flex items-center gap-1 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg font-bold">
+                      <Clock size={13} /> {func.start_time}
                     </span>
                   </div>
 
@@ -508,39 +715,90 @@ export default function Diary({ user }) {
                 </div>
 
                 {/* Card Action Footer */}
-                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                  {/* {t('diary_contact_person')} */}
-                  <div className="text-xs truncate">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase block">Contact</span>
-                    <span className="font-bold text-slate-800 truncate">{func.contact_person_name}</span>
+                <div className="mt-4 pt-3 border-t border-slate-100 space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-xs truncate">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase block">Contact</span>
+                      <span className="font-bold text-slate-800 truncate">{func.contact_person_name}</span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {func.contact_person_phone && (
+                        <a
+                          href={`tel:${func.contact_person_phone}`}
+                          className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
+                          title="Call Contact"
+                        >
+                          <Phone size={13} />
+                          <span>{func.contact_person_phone}</span>
+                        </a>
+                      )}
+
+                      {isSubmitter && !isAdmin && (
+                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
+                          Submitted by you
+                        </span>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {func.contact_person_phone && (
-                      <a
-                        href={`tel:${func.contact_person_phone}`}
-                        className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition"
-                        title="Call Contact"
-                      >
-                        <Phone size={14} />
-                      </a>
-                    )}
-
-                    {isAdmin && (
-                      <button
-                        onClick={() => openRsvp(func)}
-                        className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-1"
-                      >
-                        RSVP
-                      </button>
-                    )}
-
-                    {isSubmitter && !isAdmin && (
-                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
-                        Submitted by you
-                      </span>
-                    )}
-                  </div>
+                  {/* Direct Action & Approval Buttons for Admin / County Command */}
+                  {isAdmin && (
+                    <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center gap-1.5">
+                      {func.status === 'pending' ? (
+                        <>
+                          <button
+                            onClick={() => handleQuickApprove(func)}
+                            className="flex-1 min-w-[120px] py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-wider transition shadow-sm flex items-center justify-center gap-1.5"
+                          >
+                            <CheckCircle2 size={14} />
+                            <span>Confirm / Attend</span>
+                          </button>
+                          <button
+                            onClick={() => handleQuickDelegate(func)}
+                            className="py-2 px-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition shadow-sm flex items-center gap-1"
+                          >
+                            <Users size={13} />
+                            <span>Delegate</span>
+                          </button>
+                          <button
+                            onClick={() => handleQuickDecline(func)}
+                            className="py-2 px-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition shadow-sm flex items-center gap-1"
+                          >
+                            <XCircle size={13} />
+                            <span>Decline</span>
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => openRsvp(func)}
+                            className="flex-1 py-1.5 px-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5"
+                          >
+                            <span>Manage RSVP / Notes</span>
+                          </button>
+                          {func.status !== 'attending' && (
+                            <button
+                              onClick={() => handleQuickApprove(func)}
+                              className="py-1.5 px-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 rounded-xl text-xs font-bold transition"
+                              title="Switch to Governor Attending"
+                            >
+                              ✓ Attend
+                            </button>
+                          )}
+                          {func.status !== 'declined' && (
+                            <button
+                              onClick={() => handleQuickDecline(func)}
+                              className="py-1.5 px-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-xl text-xs font-bold transition"
+                              title="Send Regrets"
+                            >
+                              ✕ Decline
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             );
