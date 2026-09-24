@@ -2,7 +2,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Calendar as CalendarIcon, 
+  Calendar as CalendarIcon,
+  Download,
+  FileSpreadsheet, 
   Plus, 
   MapPin, 
   Clock, 
@@ -27,6 +29,7 @@ import {
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { LAIKIPIA_CONSTITUENCIES, FUNCTION_CATEGORIES } from '../lib/constants';
+import { exportToCSV } from '../lib/exportUtils';
 import { toast } from 'sonner';
 
 export default function Diary({ user }) {
@@ -306,6 +309,54 @@ export default function Diary({ user }) {
       .sort((a, b) => new Date(a.event_date) - new Date(b.event_date));
   }, [functions]);
 
+
+  // ── Download / Export Diary Events to CSV / Excel ──────────────────────────
+  const handleExportDiary = () => {
+    if (!filteredFunctions || filteredFunctions.length === 0) {
+      toast.error("No events found to export with the current active filters.");
+      return;
+    }
+
+    const exportData = filteredFunctions.map((f, idx) => ({
+      "No.": idx + 1,
+      "Event Title": f.title || "",
+      "Category": f.event_type_display || f.event_type || "",
+      "Status": f.status === 'attending'
+        ? 'Confirmed (Governor Attending)'
+        : f.status === 'delegated'
+        ? `Delegated (${f.delegate_name || 'Assigned Representative'})`
+        : f.status === 'pending'
+        ? 'Pending Review'
+        : f.status === 'declined'
+        ? 'Declined'
+        : (f.status || ''),
+      "Event Date": f.event_date || "",
+      "Start Time": f.start_time ? f.start_time.slice(0, 5) : "",
+      "Constituency / Sub-County": f.constituency || "",
+      "Ward": f.ward || "",
+      "Venue / Location": f.venue || "",
+      "Expected Attendance": f.expected_attendance || "",
+      "Contact Person": f.contact_person_name || "",
+      "Contact Phone": f.contact_person_phone || "",
+      "Assigned Delegate": f.delegate_name || "",
+      "Delegate Phone": f.delegate_phone || "",
+      "Submitted By": f.submitted_by_name || (f.is_created_by_governor ? "Governor Secretariat" : "Mobilizer"),
+      "Description": f.description || "",
+      "Admin Notes": f.admin_notes || "",
+      "Submission Date": f.created_at ? f.created_at.slice(0, 10) : "",
+    }));
+
+    const dateTag = new Date().toISOString().split('T')[0].replace(/-/g, '');
+    const scopeTag = (selectedConstituency && selectedConstituency !== 'all')
+      ? selectedConstituency.replace(/\s+/g, '_')
+      : 'All_Laikipia';
+    const timelineTag = timeline || 'events';
+    const filename = `governors_diary_${scopeTag}_${timelineTag}_${dateTag}`;
+
+    exportToCSV(exportData, filename);
+    toast.success(`Exported ${exportData.length} events to CSV / Excel!`);
+  };
+
   // Available Wards for selected constituency
   const availableWards = useMemo(() => {
     return LAIKIPIA_CONSTITUENCIES[formData.constituency] || [];
@@ -327,13 +378,25 @@ export default function Diary({ user }) {
           </p>
         </div>
 
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition shrink-0"
-        >
-          <Plus size={18} />
-          <span>{isAdmin ? "Add Event / Chama" : t('diary_register_btn')}</span>
-        </button>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <button
+            onClick={handleExportDiary}
+            disabled={loading || filteredFunctions.length === 0}
+            className="bg-white/10 hover:bg-white/20 text-white border border-white/20 px-4 py-3 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm transition shrink-0 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            title="Download filtered events to CSV / Excel"
+          >
+            <Download size={16} className="text-emerald-400" />
+            <span>{t('download_events') || 'Download Events'} ({filteredFunctions.length})</span>
+          </button>
+
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition shrink-0 cursor-pointer"
+          >
+            <Plus size={18} />
+            <span>{isAdmin ? "Add Event / Chama" : t('diary_register_btn')}</span>
+          </button>
+        </div>
       </div>
 
       {/* ── Constituency Selector Bar (Scoped to Authority) ── */}
