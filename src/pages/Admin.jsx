@@ -982,14 +982,18 @@ export default function Admin({ onLogout }) {
   }, []);
 
   // Fetch Roots Page
-  const loadRootPage = useCallback(async (pageIdx, q = "") => {
+  const loadRootPage = useCallback(async (pageIdx, q = "", ward = wardFilter) => {
     setLoadingMoreRoots(true);
     try {
-      const { data, error } = await api.getMembers({ 
+      const params = { 
         referred_by: 'null', 
         search: q,
         page: pageIdx + 1
-      });
+      };
+      if (ward && ward !== 'all') {
+        params.ward = ward;
+      }
+      const { data, error } = await api.getMembers(params);
       if (error) {
         if (error.message?.includes('401') || error.message?.includes('403')) {
           navigate('/');
@@ -1005,7 +1009,7 @@ export default function Admin({ onLogout }) {
       }
     } catch (err) { console.error(err); toast.error("Error loading mobilizers"); }
     finally { setLoadingMoreRoots(false); }
-  }, [navigate]);
+  }, [navigate, wardFilter]);
 
   // Fetch Members Page
   const loadMembersPage = useCallback(async (pageIdx, q = "", voterStatus = "all", ward = wardFilter) => {
@@ -1058,7 +1062,7 @@ export default function Admin({ onLogout }) {
   useEffect(() => {
     const timer = setTimeout(() => {
       if (activeTab === "mobilizers") {
-        loadRootPage(0, searchQuery);
+        loadRootPage(0, searchQuery, wardFilter);
       } else if (activeTab === "all") {
         loadMembersPage(0, searchQuery, voterStatusFilter);
       } else if (activeTab === "social") {
@@ -2434,8 +2438,13 @@ export default function Admin({ onLogout }) {
                           onChange={(e) => {
                             const newWard = e.target.value;
                             setWardFilter(newWard);
-                            setMemberPage(0);
-                            loadMembersPage(0, searchQuery, voterStatusFilter, newWard);
+                            if (activeTab === "mobilizers") {
+                              setRootPage(0);
+                              loadRootPage(0, searchQuery, newWard);
+                            } else {
+                              setMemberPage(0);
+                              loadMembersPage(0, searchQuery, voterStatusFilter, newWard);
+                            }
                           }}
                           className="w-full pl-9 pr-8 py-2.5 bg-white border border-slate-200 hover:border-emerald-500 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition shadow-sm appearance-none cursor-pointer"
                         >
@@ -3058,7 +3067,7 @@ export default function Admin({ onLogout }) {
                   <div className="flex justify-center p-6 border-t border-slate-100 bg-slate-50/50 shrink-0">
                     <button
                       onClick={() => {
-                        if (activeTab === "mobilizers") loadRootPage(rootPage + 1, searchQuery);
+                        if (activeTab === "mobilizers") loadRootPage(rootPage + 1, searchQuery, wardFilter);
                         else loadMembersPage(memberPage + 1, searchQuery);
                       }}
                       disabled={activeTab === "mobilizers" ? loadingMoreRoots : loadingMoreMembers}

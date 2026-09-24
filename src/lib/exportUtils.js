@@ -70,6 +70,15 @@ export function exportToCSV(dataArray, filename) {
         return `="` + digitsOnly + `"`;
       }
 
+      // Check if this is a Date or Time column (prevent Excel '###' overflow rendering)
+      const isDateOrTime = /date|time|created_at|event_date|registered_at|submission/i.test(lowerHeader) ||
+        /^\d{4}-\d{2}-\d{2}/.test(stringVal) ||
+        /^\d{2}:\d{2}/.test(stringVal);
+
+      if (isDateOrTime && stringVal) {
+        return `="` + stringVal.replace(/"/g, '""') + `"`;
+      }
+
       // Escape quotes and wrap in quotes if needed
       if (stringVal.includes(',') || stringVal.includes('\n') || stringVal.includes('\r') || stringVal.includes('"')) {
         return `"${stringVal.replace(/"/g, '""')}"`;
