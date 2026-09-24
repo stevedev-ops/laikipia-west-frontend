@@ -33,7 +33,7 @@ export default function LoginForm({ onLogin }) {
         throw new Error("No member found with that First Name and ID combination.");
       }
 
-      toast.success(`Welcome back, ${user.full_name.split(' ')[0]}!`);
+      toast.success(`Welcome back, ${(user.full_name || 'Member').split(' ')[0]}!`);
       onLogin(user.id, token);
       
       const isCoordinator = ['polling_centre_coordinator', 'ward_coordinator', 'sub_county_coordinator', 'pillar', 'county_manager', 'governor'].includes(user.campaign_role);
