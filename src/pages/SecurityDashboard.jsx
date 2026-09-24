@@ -1,3 +1,4 @@
+import { cleanCentreName } from "../lib/constants";
 import { useLanguage } from '../contexts/LanguageContext';
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -326,7 +327,7 @@ function WardCommanderView({ profile }) {
           <div className="space-y-3">
             {panics.map(p => (
               <div key={p.id} className="bg-red-800/50 p-4 rounded-xl">
-                <p className="font-bold">{p.polling_station}</p>
+                <p className="font-bold">{cleanCentreName(p.polling_station)}</p>
                 <p className="text-sm">Triggered by {p.guard_name}</p>
                 <p className="text-xs opacity-75">{new Date(p.logged_at).toLocaleTimeString()}</p>
               </div>
@@ -396,7 +397,7 @@ function WardCommanderView({ profile }) {
                  </span>
                  <span className="text-[10px] text-slate-400 font-bold">{new Date(l.logged_at).toLocaleTimeString()}</span>
                </div>
-               <p className="text-sm font-bold text-slate-700">{l.polling_station}</p>
+               <p className="text-sm font-bold text-slate-700">{cleanCentreName(l.polling_station)}</p>
                <p className="text-xs text-slate-500">Logged by: {l.guard_name}</p>
              </div>
            ))}

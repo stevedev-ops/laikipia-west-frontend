@@ -1,3 +1,4 @@
+import { cleanCentreName } from "../lib/constants";
 import { useLanguage } from '../contexts/LanguageContext';
 import { useState, useEffect, useCallback } from "react";
 import { BarChart3, Users, MapPin, ShieldCheck, Search, ChevronLeft, ChevronRight, AlertTriangle, Target } from "lucide-react";
@@ -387,7 +388,7 @@ export default function Reports({ memberId }) {
                 {saturation.secured.length === 0 ? <p className="text-xs text-slate-400 font-bold uppercase">No stations over 50% saturation</p> : saturation.secured.map((s, idx) => (
                    <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
                       <div>
-                         <p className="text-xs font-black text-slate-900 truncate max-w-[200px]">{s.polling_station}</p>
+                         <p className="text-xs font-black text-slate-900 truncate max-w-[200px]">{cleanCentreName(s.polling_station)}</p>
                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{s.recruits} / {s.total_registered} voters</p>
                       </div>
                       <div className="text-right">
@@ -412,7 +413,7 @@ export default function Reports({ memberId }) {
                 {saturation.at_risk.length === 0 ? <p className="text-xs text-slate-400 font-bold uppercase">{t('rep_no_at_risk')}</p> : saturation.at_risk.map((s, idx) => (
                    <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
                       <div>
-                         <p className="text-xs font-black text-slate-900 truncate max-w-[200px]">{s.polling_station}</p>
+                         <p className="text-xs font-black text-slate-900 truncate max-w-[200px]">{cleanCentreName(s.polling_station)}</p>
                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{s.recruits} / {s.total_registered} voters</p>
                       </div>
                       <div className="text-right">

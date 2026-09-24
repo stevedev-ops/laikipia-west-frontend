@@ -1,3 +1,4 @@
+import { cleanCentreName } from "../lib/constants";
 import { useLanguage } from '../contexts/LanguageContext';
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -81,9 +82,9 @@ export default function Canvass({ memberId, isAdmin = false }) {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_100%_0%,rgba(0,132,61,0.2)_0%,transparent_60%)] pointer-events-none" />
           <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-400 mb-1">BJP-Style · Panna Pramukh System</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-400 mb-1">{t("panna_pramukh_title")}</p>
               <h1 className="text-3xl font-black text-white italic uppercase">{t('canvass_title')}</h1>
-              <p className="text-slate-400 text-sm mt-1">Assign mobilizers to specific shambas, polling stations & villages</p>
+              <p className="text-slate-400 text-sm mt-1">{t("panna_pramukh_desc")}</p>
             </div>
             <div className="flex items-center gap-3">
               <div className="bg-white/10 border border-white/10 rounded-2xl px-5 py-3 text-center">
@@ -134,7 +135,7 @@ export default function Canvass({ memberId, isAdmin = false }) {
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:border-dcp-green/50 transition" />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Notes / Instructions</label>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">{t("notes_instructions")}</label>
                   <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2}
                     placeholder="e.g. Focus on the market area near the river..."
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:border-dcp-green/50 transition resize-none" />
@@ -188,7 +189,7 @@ export default function Canvass({ memberId, isAdmin = false }) {
                   </p>
                   <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                     <span className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                      <MapPin className="w-3 h-3" />{a.ward}{a.polling_station ? ` · ${a.polling_station}` : ""}
+                      <MapPin className="w-3 h-3" />{a.ward}{a.polling_station ? ` · ${cleanCentreName(a.polling_station)}` : ""}
                     </span>
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                       🏠 {a.target_households} households

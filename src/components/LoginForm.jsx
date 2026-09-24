@@ -36,8 +36,12 @@ export default function LoginForm({ onLogin }) {
       toast.success(`Welcome back, ${user.full_name.split(' ')[0]}!`);
       onLogin(user.id, token);
       
+      const isCoordinator = ['polling_centre_coordinator', 'ward_coordinator', 'sub_county_coordinator', 'pillar', 'county_manager', 'governor'].includes(user.campaign_role);
+
       if (user.is_admin) {
         navigate("/admin", { replace: true });
+      } else if (isCoordinator) {
+        navigate("/dashboard", { replace: true });
       } else if (user.is_agent) {
         navigate("/agent-dashboard", { replace: true });
       } else if (user.security_rank && user.security_rank !== 'none') {

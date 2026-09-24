@@ -1,3 +1,4 @@
+import { cleanCentreName } from "../lib/constants";
 import { useLanguage } from '../contexts/LanguageContext';
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -93,9 +94,9 @@ export default function Gotv({ memberId, isAdmin = false }) {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_100%,rgba(0,132,61,0.25)_0%,transparent_60%)] pointer-events-none" />
           <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-400 mb-1">Election Day · GOTV Command</p>
-              <h1 className="text-3xl font-black text-white italic uppercase">Strike-off Tool</h1>
-              <p className="text-slate-400 text-sm mt-1">Mark DCP supporters as voted — station by station</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-400 mb-1">{t("gotv_title")}</p>
+              <h1 className="text-3xl font-black text-white italic uppercase">{t("strike_off_tool")}</h1>
+              <p className="text-slate-400 text-sm mt-1">{t("gotv_desc")}</p>
             </div>
             {members.length > 0 && (
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
@@ -208,7 +209,7 @@ export default function Gotv({ memberId, isAdmin = false }) {
                         </div>
                         <div className="col-span-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
                           <MapPin className="w-3 h-3 shrink-0" />
-                          <span className="truncate">{m.polling_station}</span>
+                          <span className="truncate">{cleanCentreName(m.polling_station)}</span>
                         </div>
                         <div className="col-span-3 flex justify-end">
                           <VotedStatusButton member={m} onToggle={handleToggle} />
@@ -240,7 +241,7 @@ export default function Gotv({ memberId, isAdmin = false }) {
             <div className="w-16 h-16 rounded-3xl bg-slate-100 flex items-center justify-center mx-auto mb-5">
               <MapPin className="w-8 h-8 text-slate-400" />
             </div>
-            <p className="font-black text-slate-700 uppercase tracking-tight text-lg">Select a Ward to Begin</p>
+            <p className="font-black text-slate-700 uppercase tracking-tight text-lg">{t("select_ward_to_begin")}</p>
             <p className="text-slate-400 text-sm mt-2">Choose the ward and polling station you are monitoring.</p>
           </div>
         )}

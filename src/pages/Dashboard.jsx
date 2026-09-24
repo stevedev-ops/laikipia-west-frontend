@@ -1,7 +1,25 @@
+import { cleanCentreName } from "../lib/constants";
+const CAMPAIGN_ROLE_LABELS = {
+  governor: "Governor Aspirant",
+  county_manager: "County Campaigns Manager",
+  sub_county_coordinator: "Sub-County Coordinator",
+  ward_coordinator: "Ward Coordinator",
+  polling_centre_coordinator: "Polling Centre Coordinator",
+  pillar: "Campaign Pillar",
+  station_mobilizer: "Polling Station Mobilizer",
+};
+
+const PILLAR_LABELS = {
+  youth: "Youth Pillar",
+  women: "Women Pillar",
+  elders_business: "Elders & Business Pillar",
+  special_interest: "Special Interest Pillar",
+};
+
 import Diary from './Diary';
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users, CheckCircle, Lock, Star, AlertCircle, QrCode, Copy, Share2, Download, WifiOff, CloudUpload, Crosshair } from "lucide-react";
+import { Users, CheckCircle, Lock, Star, AlertCircle, QrCode, Copy, Share2, Download, WifiOff, CloudUpload, Crosshair, ShieldCheck, ClipboardList, Calendar, ChevronRight, Award, Compass } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
@@ -10,29 +28,72 @@ import logo from "../assets/logo.png";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useSync } from "../contexts/SyncContext";
 
-// ─── Tier config for root members (10 slots = 2 tiers × 5) ───────────────────
+// ─── Tier config for Mobilizer 5x5 Squads (Bronze Tier 7.1, Silver Tier 7.2, Gold Tier 7.3, Platinum Tier 7.4, Diamond Tier 7.5) ─────────────
 const TIERS = [
   {
-    name: "Bronze",
+    name: "Bronze Squad",
+    subtitle: "Foundation Mobilizers Pod",
+    slots: "Slots #1 – #5",
     range: [1, 5],
     icon: "🥉",
     color: "#CD7F32",
     bg: "from-amber-900/20 to-amber-800/10",
     border: "border-amber-700/40",
     fill: "bg-amber-600",
-    text: "text-amber-600",
+    text: "text-amber-500",
     glow: "shadow-amber-500/20",
   },
   {
-    name: "Silver",
+    name: "Silver Squad",
+    subtitle: "Expansion Mobilizers Pod",
+    slots: "Slots #6 – #10",
     range: [6, 10],
     icon: "🥈",
     color: "#A8A9AD",
     bg: "from-slate-400/20 to-slate-300/10",
     border: "border-slate-400/40",
-    fill: "bg-slate-500",
-    text: "text-slate-400",
+    fill: "bg-slate-400",
+    text: "text-slate-300",
     glow: "shadow-slate-400/20",
+  },
+  {
+    name: "Gold Squad",
+    subtitle: "Intermediate Mobilizers Pod",
+    slots: "Slots #11 – #15",
+    range: [11, 15],
+    icon: "🥇",
+    color: "#FFD700",
+    bg: "from-yellow-900/20 to-yellow-800/10",
+    border: "border-yellow-700/40",
+    fill: "bg-yellow-500",
+    text: "text-yellow-400",
+    glow: "shadow-yellow-500/20",
+  },
+  {
+    name: "Platinum Squad",
+    subtitle: "Advanced Mobilizers Pod",
+    slots: "Slots #16 – #20",
+    range: [16, 20],
+    icon: "💎",
+    color: "#67e8f9",
+    bg: "from-cyan-900/20 to-cyan-800/10",
+    border: "border-cyan-700/40",
+    fill: "bg-cyan-500",
+    text: "text-cyan-400",
+    glow: "shadow-cyan-500/20",
+  },
+  {
+    name: "Diamond Squad",
+    subtitle: "Station Command Cap Pod",
+    slots: "Slots #21 – #25",
+    range: [21, 25],
+    icon: "👑",
+    color: "#c084fc",
+    bg: "from-purple-900/20 to-purple-800/10",
+    border: "border-purple-700/40",
+    fill: "bg-purple-500",
+    text: "text-purple-400",
+    glow: "shadow-purple-500/20",
   }
 ];
 
@@ -57,19 +118,19 @@ function TierCard({ tier, tierIndex, referralCount, delay }) {
       className={`
         relative rounded-2xl border p-5 flex flex-col items-center gap-3 overflow-hidden
         bg-gradient-to-b ${tier.bg} ${tier.border}
-        ${isLocked ? "opacity-40 grayscale" : ""}
-        ${isActive ? `shadow-lg ${tier.glow}` : ""}
+        ${isLocked ? "opacity-50 grayscale" : ""}
+        ${isActive ? `shadow-lg ${tier.glow} ring-1 ring-emerald-500/50` : ""}
         transition-all duration-500
       `}
     >
       {isLocked && (
-        <div className="absolute inset-0 flex items-center justify-center z-10">
-          <Lock size={28} className="text-slate-500" />
+        <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/40 backdrop-blur-[1px]">
+          <Lock size={22} className="text-slate-400" />
         </div>
       )}
 
       {isComplete && (
-        <span className="absolute top-2 right-2 bg-green-500/20 border border-green-500/40 rounded-full px-2 py-0.5 text-[9px] font-black text-green-400 uppercase tracking-widest">
+        <span className="absolute top-2 right-2 bg-emerald-500/20 border border-emerald-500/40 rounded-full px-2 py-0.5 text-[8px] font-black text-emerald-400 uppercase tracking-widest">
           ✓ Full
         </span>
       )}
@@ -79,11 +140,20 @@ function TierCard({ tier, tierIndex, referralCount, delay }) {
       )}
 
       <div className="text-2xl">{tier.icon}</div>
-      <p className={`text-xs font-black uppercase tracking-widest ${isLocked ? "text-slate-600" : tier.text}`}>
-        {tier.name}
-      </p>
 
-      <div className="flex gap-1.5">
+      <div className="text-center w-full">
+        <p className={`text-xs font-black uppercase tracking-wider ${isLocked ? "text-slate-500" : tier.text}`}>
+          {tier.name}
+        </p>
+        <p className="text-[10px] text-slate-400 font-medium truncate mt-0.5">
+          {tier.subtitle}
+        </p>
+        <p className="text-[10px] font-mono text-slate-500 mt-0.5">
+          {tier.slots}
+        </p>
+      </div>
+
+      <div className="flex gap-1.5 justify-center my-1">
         {Array.from({ length: 5 }).map((_, i) => (
           <div
             key={i}
@@ -97,9 +167,12 @@ function TierCard({ tier, tierIndex, referralCount, delay }) {
         ))}
       </div>
 
-      <p className={`text-[10px] font-bold ${isLocked ? "text-slate-600" : "text-slate-400"}`}>
-        {filledInTier} / 5
-      </p>
+      <div className="w-full pt-2 border-t border-white/5 flex items-center justify-between text-[10px] font-bold">
+        <span className="text-slate-500">Progress</span>
+        <span className={isLocked ? "text-slate-600 font-mono font-black" : "text-white font-mono font-black"}>
+          {filledInTier} / 5
+        </span>
+      </div>
     </motion.div>
   );
 }
@@ -236,8 +309,11 @@ export default function Dashboard({ memberId, onLogout }) {
     }
   };
 
-  const isRoot = member?.referred_by === null && (!member?.source || member?.source === 'field_mobilizer');
-  const quota = isRoot ? 10 : 5;
+  const isCoordinator = ['polling_centre_coordinator', 'ward_coordinator', 'sub_county_coordinator', 'pillar', 'county_manager', 'governor'].includes(member?.campaign_role);
+  const coordinatorQuota = 25;
+  const coordinatorPct = Math.min(100, Math.round((referralCount / coordinatorQuota) * 100));
+  const isRoot = true; // All mobilizers and leaders use the 25 5x5 recruitment tier system
+  const quota = 25;
   const remaining = Math.max(0, quota - referralCount);
   const pct = Math.min(100, Math.round((referralCount / quota) * 100));
 
@@ -341,7 +417,7 @@ export default function Dashboard({ memberId, onLogout }) {
                <div>
                   <p className="text-[10px] uppercase tracking-[0.35em] text-indigo-400 font-black">{t('ai_recommendations')}</p>
                   <h2 className="text-xl font-black text-white">{t('suggested_targets')}</h2>
-                  <p className="text-xs text-slate-400 mt-0.5">High probability family members at your polling station</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{t("family_network_suggested")}</p>
                </div>
              </div>
              
@@ -437,27 +513,81 @@ export default function Dashboard({ memberId, onLogout }) {
             <div className="flex flex-col items-center md:items-start text-center md:text-left">
               <div className="flex items-center gap-3 mb-6 bg-white/5 border border-white/10 rounded-2xl px-4 py-2 self-center md:self-start">
                 <div className="w-2 h-2 rounded-full bg-dcp-green animate-pulse" />
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-dcp-green">Official Delegate Verified</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-300">★ {member?.campaign_role === "pillar" ? (PILLAR_LABELS[member?.pillar_category] || "Campaign Pillar") : (CAMPAIGN_ROLE_LABELS[member?.campaign_role] || "Official Delegate Verified")}</span>
               </div>
               
-              <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.4em] mb-3">Welcome back</p>
+              <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.4em] mb-3">{t("welcome_back")}</p>
               <h1 className="text-4xl md:text-6xl font-black text-white italic leading-none mb-6 tracking-tight uppercase">
                 {member?.full_name?.split(' ')[0]} <span className="text-dcp-green not-italic">{member?.full_name?.split(' ').slice(1).join(' ')}</span>
               </h1>
 
               <div className="flex flex-wrap justify-center md:justify-start gap-3 mt-2">
-                <div className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl">
-                  <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Role</p>
-                  <p className="text-sm font-bold text-white">{isRoot ? "Root Mobilizer" : "Mobilization Delegate"}</p>
+                <div className="px-4 py-2 bg-white/5 border border-amber-500/20 bg-amber-500/5 rounded-xl">
+                  <p className="text-[9px] font-black text-amber-400 uppercase tracking-widest mb-0.5">{t("dash_role") || "Role / Position"}</p>
+                  <p className="text-sm font-black text-white flex items-center gap-1.5">
+                    <Star size={14} className="text-amber-400 fill-amber-400 shrink-0" />
+                    {member?.campaign_role === 'pillar'
+                      ? (PILLAR_LABELS[member?.pillar_category] || "Campaign Pillar")
+                      : (CAMPAIGN_ROLE_LABELS[member?.campaign_role] || (isRoot ? "Root Mobilizer" : "Mobilization Delegate"))}
+                  </p>
                 </div>
-                <div className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl">
-                  <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Ward Authority</p>
-                  <p className="text-sm font-bold text-white">{member?.ward}</p>
-                </div>
-                <div className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl">
-                  <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Station HQ</p>
-                  <p className="text-sm font-bold text-white">{member?.polling_station}</p>
-                </div>
+                
+                {member?.campaign_role === 'sub_county_coordinator' ? (
+                  <>
+                    <div className="px-4 py-2 bg-white/5 border border-blue-500/20 bg-blue-500/5 rounded-xl">
+                      <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-0.5">{t("subcounty_command")}</p>
+                      <p className="text-sm font-bold text-white">{member?.assigned_sub_county || "Laikipia West"} (6 Wards)</p>
+                    </div>
+                    <div className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl">
+                      <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Base Station HQ</p>
+                      <p className="text-sm font-bold text-white">{cleanCentreName(member?.polling_station) || member?.ward || "Constituency HQ"}</p>
+                    </div>
+                  </>
+                ) : member?.campaign_role === 'ward_coordinator' ? (
+                  <>
+                    <div className="px-4 py-2 bg-white/5 border border-cyan-500/20 bg-cyan-500/5 rounded-xl">
+                      <p className="text-[9px] font-black text-cyan-400 uppercase tracking-widest mb-0.5">{t("ward_polling_command")}</p>
+                      <p className="text-sm font-bold text-white">{member?.assigned_ward || member?.ward} Ward</p>
+                    </div>
+                    <div className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl">
+                      <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Base Station HQ</p>
+                      <p className="text-sm font-bold text-white">{cleanCentreName(member?.polling_station) || "Ward HQ"}</p>
+                    </div>
+                  </>
+                ) : member?.campaign_role === 'polling_centre_coordinator' ? (
+                  <>
+                    <div className="px-4 py-2 bg-white/5 border border-purple-500/20 bg-purple-500/5 rounded-xl">
+                      <p className="text-[9px] font-black text-purple-400 uppercase tracking-widest mb-0.5">{t("station_command")}</p>
+                      <p className="text-sm font-bold text-white">{cleanCentreName(member?.assigned_polling_centre || member?.polling_station)}</p>
+                    </div>
+                    <div className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl">
+                      <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Ward Jurisdiction</p>
+                      <p className="text-sm font-bold text-white">{member?.assigned_ward || member?.ward}</p>
+                    </div>
+                  </>
+                ) : member?.campaign_role === 'governor' || member?.campaign_role === 'county_manager' ? (
+                  <>
+                    <div className="px-4 py-2 bg-white/5 border border-emerald-500/20 bg-emerald-500/5 rounded-xl">
+                      <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mb-0.5">{t("county_ops")}</p>
+                      <p className="text-sm font-bold text-white">All Laikipia (15 Wards)</p>
+                    </div>
+                    <div className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl">
+                      <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Supreme Base</p>
+                      <p className="text-sm font-bold text-white">County HQ</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl">
+                      <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Ward Authority</p>
+                      <p className="text-sm font-bold text-white">{member?.ward || "Laikipia"}</p>
+                    </div>
+                    <div className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl">
+                      <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Station HQ</p>
+                      <p className="text-sm font-bold text-white">{cleanCentreName(member?.polling_station) || "Station Base"}</p>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
@@ -491,9 +621,17 @@ export default function Dashboard({ memberId, onLogout }) {
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
               <Star size={80} strokeWidth={3} />
             </div>
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-2 text-white/70">Expansion</p>
-            <h3 className="text-2xl font-black mb-3 italic uppercase">{t('nav_enroll')}</h3>
-            <p className="text-sm text-white/80 leading-relaxed font-medium">Use your authority to register and onboard new supporters to the movement.</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-2 text-white/70">
+              {isCoordinator ? "Command Mandate" : "Expansion"}
+            </p>
+            <h3 className="text-2xl font-black mb-3 italic uppercase">
+              {isCoordinator ? "Enrol Supporter / Agent" : "Enrol New Voter"}
+            </h3>
+            <p className="text-sm text-white/80 leading-relaxed font-medium">
+              {isCoordinator
+                ? `Directly onboard field mobilizers and registered supporters under your ${CAMPAIGN_ROLE_LABELS[member?.campaign_role] || 'Command'} authority.`
+                : "Use your authority to register and onboard new supporters to the movement."}
+            </p>
             <div className="mt-6 flex items-center gap-2 text-xs font-black uppercase tracking-widest bg-black/10 w-fit px-4 py-2 rounded-full">
               Open Recruitment Tools →
             </div>
@@ -504,17 +642,25 @@ export default function Dashboard({ memberId, onLogout }) {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2 }}
-            onClick={() => navigate("/members")}
+            onClick={() => navigate(isCoordinator ? "/hierarchy" : "/members")}
             className="group relative overflow-hidden rounded-[2rem] p-8 bg-white text-slate-900 shadow-sm border border-slate-200 text-left hover:border-slate-300 transition"
           >
             <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-              <Users size={80} strokeWidth={3} />
+              <ShieldCheck size={80} strokeWidth={3} />
             </div>
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-2 text-slate-400">Team Leadership</p>
-            <h3 className="text-2xl font-black mb-3 italic uppercase">{t('dash_network')}</h3>
-            <p className="text-sm text-slate-500 leading-relaxed font-medium">Track your personal team performance and view registration statuses.</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-2 text-slate-400">
+              {isCoordinator ? "Official Hierarchy Tree" : "Team Leadership"}
+            </p>
+            <h3 className="text-2xl font-black mb-3 italic uppercase">
+              {isCoordinator ? "Command Tree & Roster" : "My Team Network"}
+            </h3>
+            <p className="text-sm text-slate-500 leading-relaxed font-medium">
+              {isCoordinator
+                ? "Access your 7-tier official campaign hierarchy, monitor station mobilizers, and oversee downlines."
+                : "Track your personal team performance and view registration statuses."}
+            </p>
             <div className="mt-6 flex items-center gap-2 text-xs font-black uppercase tracking-widest bg-slate-50 w-fit px-4 py-2 rounded-full border border-slate-100 group-hover:bg-slate-100 transition">
-              Manage Network →
+              {isCoordinator ? "Open Command Tree →" : "Manage Network →"}
             </div>
           </motion.button>
         </section>
@@ -535,9 +681,9 @@ export default function Dashboard({ memberId, onLogout }) {
                 <QrCode size={22} className="text-dcp-green" />
               </div>
               <div className="text-left">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Offline Sharing Tool</p>
-                <h3 className="font-black text-slate-900">My Referral QR Code</h3>
-                <p className="text-xs text-slate-500 mt-0.5">Show or print at barazas — works without internet</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{t("offline_sharing_tool")}</p>
+                <h3 className="font-black text-slate-900">{t("my_referral_qr")}</h3>
+                <p className="text-xs text-slate-500 mt-0.5">{t("show_or_print_barazas")}</p>
               </div>
             </div>
             <motion.div animate={{ rotate: showQR ? 180 : 0 }} className="text-slate-400">
@@ -568,13 +714,13 @@ export default function Dashboard({ memberId, onLogout }) {
                         includeMargin={false}
                       />
                     </div>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-600 text-center">Scan to join your network</p>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-600 text-center">{t("scan_to_join_network")}</p>
                   </div>
 
                   {/* Info + Actions */}
                   <div className="flex-1 space-y-4 w-full">
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Your Referral Link</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{t("your_referral_link")}</p>
                       <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
                         <p className="text-xs font-bold text-slate-700 truncate flex-1">{referralLink}</p>
                       </div>
@@ -647,173 +793,360 @@ export default function Dashboard({ memberId, onLogout }) {
 
 
 
-        {/* ── Performance Goal Summary ────────────────────────────── */}
-        <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-12">
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="bg-white border border-slate-200 p-8 md:p-10 rounded-[2rem] shadow-sm flex flex-col md:flex-row items-center gap-8 md:gap-12"
-            >
-              <div className="relative shrink-0 flex items-center justify-center">
-                <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-[10px] border-slate-50 flex items-center justify-center relative">
-                  <div className="absolute inset-0 rounded-full border-[10px] border-dcp-green transition-all duration-1000" 
-                       style={{ clipPath: `inset(0 0 0 0 round 9999px)`, strokeDasharray: 440, strokeDashoffset: 440 - (440 * (isRoot ? Math.round((tierFilledIn / 5) * 100) : pct)) / 100 }} />
-                   {/* Fallback simple pie for SVG might be better but CSS circle works for now */}
-                   <svg className="w-full h-full absolute -rotate-90">
-                      <circle 
-                        cx="50%" cy="50%" r="45%" 
-                        stroke="currentColor" 
-                        strokeWidth="10" 
-                        fill="transparent" 
-                        className="text-slate-50"
-                      />
-                      <circle 
-                        cx="50%" cy="50%" r="45%" 
-                        stroke="currentColor" 
-                        strokeWidth="10" 
-                        fill="transparent" 
-                        strokeDasharray="283"
-                        strokeDashoffset={283 - (283 * (isRoot ? (tierFilledIn / 5) * 100 : pct)) / 100}
-                        strokeLinecap="round"
-                        className="text-dcp-green transition-all duration-1000"
-                      />
-                   </svg>
-                   <div className="flex flex-col items-center">
-                      <span className="text-4xl font-black text-slate-900">{isRoot ? tierFilledIn : referralCount}</span>
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Recruits</span>
-                   </div>
-                </div>
-              </div>
-
-              <div className="flex-1 text-center md:text-left">
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-3">
-                  {isRoot ? "Current Tier Status" : "Mobilization Target"}
-                </p>
-                <h3 className="text-3xl font-black text-slate-900 mb-4 tracking-tight uppercase italic">
-                  {isRoot ? (activeTier ? `${activeTier.name} Bunch` : "All Tiers Complete") : `Goal: ${quota} Members`}
-                </h3>
-                
-                <div className="flex flex-col md:flex-row gap-4 md:items-center">
-                  <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
-                    <motion.div 
-                      initial={{ width: 0 }}
-                      animate={{ width: `${isRoot ? Math.round((tierFilledIn / 5) * 100) : pct}%` }}
-                      transition={{ duration: 1, delay: 0.5 }}
-                      className="h-full bg-slate-900 rounded-full"
-                    />
-                  </div>
-                  <span className="text-sm font-black text-slate-900 shrink-0 whitespace-nowrap">
-                    {isRoot ? Math.round((tierFilledIn / 5) * 100) : pct}% Complete
-                  </span>
-                </div>
-
-                <p className="mt-4 text-sm text-slate-500 font-medium max-w-xl">
-                  {isRoot
-                    ? activeTier
-                      ? `You are currently filling your ${activeTier.name} bunch. You need ${tierRemaining} more to unlock the next level.`
-                      : "You have completed all your recruitment tiers. Exceptional leadership!"
-                    : remaining > 0
-                      ? `Continue your outreach in ${member?.ward}. You need ${remaining} more personal recruits to hit your quota.`
-                      : "Outstanding! You have reached your primary mobilization quota."}
-                </p>
-              </div>
-            </motion.div>
-          </div>
-        </section>
-
-
-        {/* ── Goal context for non-root members ────────────────────── */}
-        {!isRoot && (
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex items-start gap-5"
-          >
-            <div className="w-12 h-12 rounded-2xl bg-dcp-green/10 border border-dcp-green/20 flex items-center justify-center shrink-0">
-              <Star size={20} className="text-dcp-green" />
-            </div>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{t('recruitment_goal')}</p>
-              <h4 className="font-black text-slate-900 mb-1">Recruit {quota} members to unlock rewards</h4>
-              <p className="text-xs text-slate-500">
-                You have <span className="font-black text-slate-900">{referralCount}</span> of <span className="font-black text-slate-900">{quota}</span> recruits.
-                {remaining > 0
-                  ? ` Bring in ${remaining} more to hit your target and qualify for party recognition.`
-                  : " You have reached your quota — well done!"}
-              </p>
-            </div>
-          </motion.div>
-        )}
-
-        {/* ── TIER SYSTEM (root members only) ──────────────────────── */}
-        {isRoot && (
+        {/* ── Coordinator Command Deck (For Coordinators & Pillars) ────── */}
+        {isCoordinator ? (
           <motion.section
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="bg-slate-900 rounded-3xl border border-slate-800 p-8 shadow-2xl"
+            className="bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 rounded-[2.5rem] border border-amber-500/20 p-8 md:p-10 shadow-2xl text-white relative overflow-hidden"
           >
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-3 mb-6">
-              <div className="flex items-center gap-3">
-                <Star className="text-dcp-green w-5 h-5" />
-                <div>
-                  <h3 className="text-white font-black uppercase tracking-widest text-sm">{t('recruitment_tiers')}</h3>
-                  <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">
-                    {t('fill_bunch')}
-                  </p>
+            <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/5 rounded-full blur-[100px] pointer-events-none" />
+            <div className="relative z-10">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-800">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shrink-0">
+                    <ShieldCheck size={28} className="text-amber-400" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[10px] font-black uppercase tracking-[0.25em] text-amber-400 bg-amber-400/10 px-2.5 py-0.5 rounded-full border border-amber-400/20">
+                        Official Mandate
+                      </span>
+                      <span className="text-xs text-slate-400 font-bold">• Active Jurisdiction</span>
+                    </div>
+                    <h3 className="text-2xl md:text-3xl font-black text-white uppercase tracking-tight">
+                      {CAMPAIGN_ROLE_LABELS[member?.campaign_role] || "Campaign Coordinator"} Command Desk
+                    </h3>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => navigate("/hierarchy")}
+                  className="flex items-center gap-2 px-5 py-3 rounded-xl bg-amber-500 text-slate-950 font-black text-xs uppercase tracking-widest hover:bg-amber-400 transition shadow-lg shadow-amber-500/20 shrink-0"
+                >
+                  <Users size={16} /> Open Hierarchy Tree →
+                </button>
+              </div>
+
+              {/* Coordinator Metrics Grid Tailored to Specific Mandate */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+                {member?.campaign_role === 'sub_county_coordinator' ? (
+                  <>
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col justify-between">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Constituency Command</p>
+                        <p className="text-2xl md:text-3xl font-black text-white truncate">{member?.assigned_sub_county || member?.sub_county || "Laikipia West"}</p>
+                      </div>
+                      <p className="text-xs text-slate-300 mt-4 font-medium">Supervising all Ward Coordinators and campaign apparatus across the sub-county.</p>
+                    </div>
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col justify-between">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Ward Coordination</p>
+                        <p className="text-3xl font-black text-emerald-400">All Wards <span className="text-sm text-slate-400 font-normal">Active</span></p>
+                      </div>
+                      <p className="text-xs text-slate-300 mt-4 font-medium">Full oversight over all Polling Centre Coordinators and field teams in the constituency.</p>
+                    </div>
+                  </>
+                ) : member?.campaign_role === 'ward_coordinator' ? (
+                  <>
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col justify-between">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Ward Command Scope</p>
+                        <p className="text-3xl font-black text-white">{member?.assigned_ward || member?.ward || "Ward Division"}</p>
+                      </div>
+                      <p className="text-xs text-slate-300 mt-4 font-medium">Supervising all Polling Centre Coordinators, Pillars, and Station Mobilizers in this Ward.</p>
+                    </div>
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col justify-between">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Polling Centres Target</p>
+                        <p className="text-3xl font-black text-emerald-400">100% <span className="text-sm text-slate-400 font-normal">Stations Oversight</span></p>
+                      </div>
+                      <p className="text-xs text-slate-300 mt-4 font-medium">Direct leadership over all stations and grassroots mobilization bunches in {member?.ward}.</p>
+                    </div>
+                  </>
+                ) : member?.campaign_role === 'pillar' ? (
+                  <>
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col justify-between">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Demographic Pillar</p>
+                        <p className="text-2xl font-black text-rose-400">{PILLAR_LABELS[member?.pillar_category] || "Campaign Pillar"}</p>
+                      </div>
+                      <p className="text-xs text-slate-300 mt-4 font-medium">Targeted demographic voter outreach and sector engagement across {member?.ward}.</p>
+                    </div>
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col justify-between">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Pillar Mobilization</p>
+                        <p className="text-3xl font-black text-white">{referralCount} <span className="text-sm text-slate-400 font-normal">Recruits</span></p>
+                      </div>
+                      <p className="text-xs text-slate-300 mt-4 font-medium">Onboarding demographic champions and grassroots community leaders.</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col justify-between">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Station Mobilizers Quota</p>
+                        <p className="text-3xl font-black text-white">{referralCount} <span className="text-sm text-slate-400 font-normal">/ {coordinatorQuota} Mobilizers</span></p>
+                      </div>
+                      <div className="mt-4">
+                        <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                          <div className="h-full bg-amber-400 rounded-full transition-all duration-1000" style={{ width: `${coordinatorPct}%` }} />
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-2 font-bold">{coordinatorPct}% of station mobilization quota filled</p>
+                      </div>
+                    </div>
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col justify-between">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Campaign Pillars</p>
+                        <p className="text-3xl font-black text-emerald-400">3 <span className="text-sm text-slate-400 font-normal">Pillars Target</span></p>
+                      </div>
+                      <p className="text-xs text-slate-300 mt-4 leading-relaxed font-medium">
+                        Youth, Women, and Special Interest & Faith Pillars coordinating outreach in {member?.ward}.
+                      </p>
+                    </div>
+                  </>
+                )}
+
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col justify-between">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Command Jurisdiction HQ</p>
+                    <p className="text-lg font-black text-white truncate">
+                      {member?.campaign_role === 'sub_county_coordinator'
+                        ? `${member?.assigned_sub_county || 'Laikipia West'} Sub-County Command`
+                        : member?.campaign_role === 'ward_coordinator'
+                        ? `${member?.assigned_ward || member?.ward} Ward Command`
+                        : (cleanCentreName(member?.assigned_polling_centre || member?.polling_station) || member?.ward || "Laikipia County")}
+                    </p>
+                    <p className="text-xs text-slate-400 font-bold uppercase mt-0.5">
+                      {member?.campaign_role === 'sub_county_coordinator'
+                        ? `Base: ${cleanCentreName(member?.polling_station) || member?.ward || 'HQ'}`
+                        : member?.ward ? `Ward: ${member.ward}` : "Constituency Wide"}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 mt-4 pt-3 border-t border-white/10 text-xs text-amber-300 font-black uppercase tracking-wider">
+                    <CheckCircle size={14} /> IEBC Register Verified
+                  </div>
                 </div>
               </div>
-              {activeTier && (
-                <span
-                  className="sm:ml-auto w-fit text-xs font-black px-3 py-1 rounded-full border"
-                  style={{ color: activeTier.color, borderColor: activeTier.color + "60", background: activeTier.color + "15" }}
+
+              {/* Fast Command Links */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-slate-800">
+                <button
+                  onClick={() => navigate("/hierarchy")}
+                  className="flex items-center justify-between p-3.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition text-left group"
                 >
-                  {activeTier.icon} {activeTier.name} Active
-                </span>
-              )}
-            </div>
+                  <div className="truncate">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Structure</p>
+                    <p className="text-xs font-black text-white group-hover:text-amber-300">Hierarchy</p>
+                  </div>
+                  <ChevronRight size={14} className="text-slate-500 group-hover:text-white" />
+                </button>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-              {TIERS.map((tier, i) => (
-                <TierCard
-                  key={tier.name}
-                  tier={tier}
-                  tierIndex={i}
-                  referralCount={referralCount}
-                  delay={0.35 + i * 0.07}
-                />
-              ))}
-            </div>
+                <button
+                  onClick={() => navigate("/members")}
+                  className="flex items-center justify-between p-3.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition text-left group"
+                >
+                  <div className="truncate">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Team</p>
+                    <p className="text-xs font-black text-white group-hover:text-amber-300">Recruits Roster</p>
+                  </div>
+                  <ChevronRight size={14} className="text-slate-500 group-hover:text-white" />
+                </button>
 
-            <div className="mt-6 pt-6 border-t border-slate-800">
-              <div className="flex justify-between text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">
-                <span>{t('overall_progress')}</span>
-                <span>{referralCount} / 10</span>
-              </div>
-              <div className="relative h-3 bg-slate-800 rounded-full overflow-hidden">
-                {[1, 2, 3, 4].map((d) => (
-                  <div
-                    key={d}
-                    className="absolute top-0 bottom-0 w-px bg-slate-700 z-10"
-                    style={{ left: `${d * 20}%` }}
-                  />
-                ))}
-                <motion.div
-                  className="h-full rounded-full"
-                  style={{
-                    background: "linear-gradient(90deg, #CD7F32, #A8A9AD, #FFD700, #67e8f9, #93c5fd)",
-                    width: `${pct}%`,
-                  }}
-                  initial={{ width: "0%" }}
-                  animate={{ width: `${pct}%` }}
-                  transition={{ duration: 1, delay: 0.6 }}
-                />
+                <button
+                  onClick={() => navigate("/tally")}
+                  className="flex items-center justify-between p-3.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition text-left group"
+                >
+                  <div className="truncate">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">PVT Audit</p>
+                    <p className="text-xs font-black text-white group-hover:text-amber-300">Form 34A Tally</p>
+                  </div>
+                  <ChevronRight size={14} className="text-slate-500 group-hover:text-white" />
+                </button>
+
+                <button
+                  onClick={() => navigate("/diary")}
+                  className="flex items-center justify-between p-3.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition text-left group"
+                >
+                  <div className="truncate">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Mobilization</p>
+                    <p className="text-xs font-black text-white group-hover:text-amber-300">Governor Diary</p>
+                  </div>
+                  <ChevronRight size={14} className="text-slate-500 group-hover:text-white" />
+                </button>
               </div>
             </div>
           </motion.section>
+        ) : (
+          /* ── Performance Goal Summary & Tiers (For Grassroots Mobilizers) ── */
+          <>
+            <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <div className="lg:col-span-12">
+                <motion.div
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="bg-white border border-slate-200 p-8 md:p-10 rounded-[2rem] shadow-sm flex flex-col md:flex-row items-center gap-8 md:gap-12"
+                >
+                  <div className="relative shrink-0 flex items-center justify-center">
+                    <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-[10px] border-slate-50 flex items-center justify-center relative">
+                      <div className="absolute inset-0 rounded-full border-[10px] border-dcp-green transition-all duration-1000" 
+                           style={{ clipPath: `inset(0 0 0 0 round 9999px)`, strokeDasharray: 440, strokeDashoffset: 440 - (440 * (isRoot ? Math.round((tierFilledIn / 5) * 100) : pct)) / 100 }} />
+                       <svg className="w-full h-full absolute -rotate-90">
+                          <circle 
+                            cx="50%" cy="50%" r="45%" 
+                            stroke="currentColor" 
+                            strokeWidth="10" 
+                            fill="transparent" 
+                            className="text-slate-50"
+                          />
+                          <circle 
+                            cx="50%" cy="50%" r="45%" 
+                            stroke="currentColor" 
+                            strokeWidth="10" 
+                            fill="transparent" 
+                            strokeDasharray="283"
+                            strokeDashoffset={283 - (283 * (isRoot ? (tierFilledIn / 5) * 100 : pct)) / 100}
+                            strokeLinecap="round"
+                            className="text-dcp-green transition-all duration-1000"
+                          />
+                       </svg>
+                       <div className="flex flex-col items-center">
+                          <span className="text-4xl font-black text-slate-900">{isRoot ? tierFilledIn : referralCount}</span>
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Recruits</span>
+                       </div>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 text-center md:text-left">
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-3">
+                      {isRoot ? "Current Tier Status" : "Mobilization Target"}
+                    </p>
+                    <h3 className="text-3xl font-black text-slate-900 mb-4 tracking-tight uppercase italic">
+                      {isRoot ? (activeTier ? `${activeTier.name} Bunch` : "All Tiers Complete") : `Goal: ${quota} Members`}
+                    </h3>
+                    
+                    <div className="flex flex-col md:flex-row gap-4 md:items-center">
+                      <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${isRoot ? Math.round((tierFilledIn / 5) * 100) : pct}%` }}
+                          transition={{ duration: 1, delay: 0.5 }}
+                          className="h-full bg-slate-900 rounded-full"
+                        />
+                      </div>
+                      <span className="text-sm font-black text-slate-900 shrink-0 whitespace-nowrap">
+                        {isRoot ? Math.round((tierFilledIn / 5) * 100) : pct}% Complete
+                      </span>
+                    </div>
+
+                    <p className="mt-4 text-sm text-slate-500 font-medium max-w-xl">
+                      {isRoot
+                        ? activeTier
+                          ? `You are currently filling your ${activeTier.name} bunch. You need ${tierRemaining} more to unlock the next level.`
+                          : "You have completed all your recruitment tiers. Exceptional leadership!"
+                        : remaining > 0
+                          ? `Continue your outreach in ${member?.ward}. You need ${remaining} more personal recruits to hit your quota.`
+                          : "Outstanding! You have reached your primary mobilization quota."}
+                    </p>
+                  </div>
+                </motion.div>
+              </div>
+            </section>
+
+            {/* Goal context for non-root members */}
+            {!isRoot && (
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex items-start gap-5"
+              >
+                <div className="w-12 h-12 rounded-2xl bg-dcp-green/10 border border-dcp-green/20 flex items-center justify-center shrink-0">
+                  <Star size={20} className="text-dcp-green" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{t('recruitment_goal')}</p>
+                  <h4 className="font-black text-slate-900 mb-1">Recruit {quota} members to unlock rewards</h4>
+                  <p className="text-xs text-slate-500">
+                    You have <span className="font-black text-slate-900">{referralCount}</span> of <span className="font-black text-slate-900">{quota}</span> recruits.
+                    {remaining > 0
+                      ? ` Bring in ${remaining} more to hit your target and qualify for party recognition.`
+                      : " You have reached your quota — well done!"}
+                  </p>
+                </div>
+              </motion.div>
+            )}
+
+            {/* TIER SYSTEM (root members only) */}
+            {isRoot && (
+              <motion.section
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="bg-slate-900 rounded-3xl border border-slate-800 p-8 shadow-2xl"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-3 mb-6">
+                  <div className="flex items-center gap-3">
+                    <Star className="text-dcp-green w-5 h-5" />
+                    <div>
+                      <h3 className="text-white font-black uppercase tracking-widest text-sm">{t('recruitment_tiers')}</h3>
+                      <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">
+                        {t('fill_bunch')}
+                      </p>
+                    </div>
+                  </div>
+                  {activeTier && (
+                    <span
+                      className="sm:ml-auto w-fit text-xs font-black px-3 py-1 rounded-full border"
+                      style={{ color: activeTier.color, borderColor: activeTier.color + "60", background: activeTier.color + "15" }}
+                    >
+                      {activeTier.icon} {activeTier.name} Active
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                  {TIERS.map((tier, i) => (
+                    <TierCard
+                      key={tier.name}
+                      tier={tier}
+                      tierIndex={i}
+                      referralCount={referralCount}
+                      delay={0.35 + i * 0.07}
+                    />
+                  ))}
+                </div>
+
+                <div className="mt-6 pt-6 border-t border-slate-800">
+                  <div className="flex justify-between text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">
+                    <span>{t('overall_progress')}</span>
+                    <span>{referralCount} / 25</span>
+                  </div>
+                  <div className="relative h-3 bg-slate-800 rounded-full overflow-hidden">
+                    {[1, 2, 3, 4].map((d) => (
+                      <div
+                        key={d}
+                        className="absolute top-0 bottom-0 w-px bg-slate-700 z-10"
+                        style={{ left: `${d * 20}%` }}
+                      />
+                    ))}
+                    <motion.div
+                      className="h-full rounded-full"
+                      style={{
+                        background: "linear-gradient(90deg, #CD7F32, #A8A9AD, #FFD700, #67e8f9, #93c5fd)",
+                        width: `${pct}%`,
+                      }}
+                      initial={{ width: "0%" }}
+                      animate={{ width: `${pct}%` }}
+                      transition={{ duration: 1, delay: 0.6 }}
+                    />
+                  </div>
+                </div>
+              </motion.section>
+            )}
+          </>
         )}
       </div>
     </div>

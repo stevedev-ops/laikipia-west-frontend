@@ -1,7 +1,7 @@
 import Diary from './Diary';
 import AdminSecuritySettings from '../components/AdminSecuritySettings';
 import { useState, useEffect, useCallback } from "react";
-import { KeyRound, AlertCircle, Users, Star, Network, Database, ShieldCheck, MapPin, Search, Menu, X, CheckCircle2, ChevronRight, ChevronDown, Plus, Download, User, Smartphone, Hash, LayoutDashboard, BarChart3, LogOut, UserCheck, Mail, BookOpen, Truck, UserCog, ClipboardList, AlertTriangle, Phone, Link2, MessageSquare, Navigation, Trophy, UserPlus, Calendar, Megaphone, Loader2, BrainCircuit, Activity } from "lucide-react";
+import { Crown, Building, School, Award, KeyRound, AlertCircle, Users, Star, Network, Database, ShieldCheck, MapPin, Search, Menu, X, CheckCircle2, ChevronRight, ChevronDown, Plus, Download, User, Smartphone, Hash, LayoutDashboard, BarChart3, LogOut, UserCheck, Mail, BookOpen, Truck, UserCog, ClipboardList, AlertTriangle, Phone, Link2, MessageSquare, Navigation, Trophy, UserPlus, Calendar, Megaphone, Loader2, BrainCircuit, Activity } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { api } from "../lib/api";
 import { useLocationData } from "../contexts/LocationContext";
@@ -138,7 +138,8 @@ const TreeNode = ({ member, depth = 0, onSelectMember }) => {
   };
 
   const isDigital = member.source && member.source !== 'field_mobilizer';
-  const isRoot = !member.referred_by && !isDigital;
+  const isCoordinator = member.campaign_role && member.campaign_role !== 'station_mobilizer';
+  const isRoot = !member.referred_by && !isDigital && !isCoordinator;
   const maxQuota = isRoot ? 25 : 5;
   const isFull = childrenCount >= maxQuota;
 
@@ -707,6 +708,128 @@ export default function Admin({ onLogout }) {
   const [digitalCount, setDigitalCount] = useState(0);
   const [loadingDigital, setLoadingDigital] = useState(false);
   const [digitalSourceFilter, setDigitalSourceFilter] = useState("all");
+  // Role Appointment & Upgrade Modal State
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [roleModalMode, setRoleModalMode] = useState("new_voter"); // 'new_voter' | 'existing_member'
+  const [roleModalStep, setRoleModalStep] = useState("lookup"); // 'lookup' | 'form'
+  const [roleModalPrefill, setRoleModalPrefill] = useState(null);
+  const [roleModalVoter, setRoleModalVoter] = useState(null);
+  const [roleModalMember, setRoleModalMember] = useState(null);
+  const [roleSearchQuery, setRoleSearchQuery] = useState("");
+  const [roleSearchResults, setRoleSearchResults] = useState([]);
+  const [isSearchingRoleMembers, setIsSearchingRoleMembers] = useState(false);
+  const [roleAssignForm, setRoleAssignForm] = useState({
+    member_id: "",
+    campaign_role: "ward_coordinator",
+    assigned_sub_county: "",
+    assigned_ward: "",
+    assigned_polling_centre: "",
+    pillar_category: "youth",
+  });
+  const [isSubmittingRole, setIsSubmittingRole] = useState(false);
+
+  // Search members for role assignment
+  useEffect(() => {
+    if (!roleSearchQuery || roleSearchQuery.trim().length < 2) {
+      setRoleSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setIsSearchingRoleMembers(true);
+      try {
+        const { data } = await api.getMembers({ search: roleSearchQuery.trim() });
+        const list = Array.isArray(data) ? data : data?.results || [];
+        setRoleSearchResults(list.slice(0, 8));
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsSearchingRoleMembers(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [roleSearchQuery]);
+
+  // Handle Role Assignment for Existing Member
+  const handleExecuteRoleAssignment = async (e) => {
+    if (e) e.preventDefault();
+    const targetId = roleModalMember?.id || roleAssignForm.member_id;
+    if (!targetId) {
+      toast.error("Please select a candidate member to appoint.");
+      return;
+    }
+
+    setIsSubmittingRole(true);
+    try {
+      const payload = {
+        member_id: targetId,
+        campaign_role: roleAssignForm.campaign_role,
+        assigned_sub_county: roleAssignForm.assigned_sub_county,
+        assigned_ward: roleAssignForm.assigned_ward,
+        assigned_polling_centre: roleAssignForm.assigned_polling_centre,
+        pillar_category: roleAssignForm.campaign_role === "pillar" ? roleAssignForm.pillar_category : "none",
+      };
+
+      const { data, error } = await api.assignCampaignRole(payload);
+      if (error) {
+        toast.error(error || "Failed to assign role.");
+        return;
+      }
+
+      if (data && (data.status === "success" || data.message)) {
+        toast.success(data.message || "Campaign role assigned successfully!");
+        setShowRoleModal(false);
+        setRoleModalMember(null);
+        setRoleSearchQuery("");
+        // Refresh views
+        loadRootPage(0, searchQuery);
+        loadMembersPage(0, searchQuery, voterStatusFilter);
+        loadDigitalMembers(searchQuery, wardFilter, digitalSourceFilter);
+        loadOverviewData();
+      } else {
+        toast.error("Failed to assign role.");
+      }
+    } catch (err) {
+      toast.error(err?.message || "Failed to assign role.");
+    } finally {
+      setIsSubmittingRole(false);
+    }
+  };
+
+  // Handle Success after Registering New Person via VoterLookup + RegistrationForm
+  const handleNewPersonRoleRegistered = async (newMember) => {
+    try {
+      const targetMemberId = newMember?.member?.id || newMember?.id || newMember?.data?.id || newMember?.data?.member?.id;
+      if (targetMemberId && roleAssignForm.campaign_role) {
+        const { data, error } = await api.assignCampaignRole({
+          member_id: targetMemberId,
+          campaign_role: roleAssignForm.campaign_role,
+          assigned_sub_county: roleAssignForm.assigned_sub_county,
+          assigned_ward: roleAssignForm.assigned_ward,
+          assigned_polling_centre: roleAssignForm.assigned_polling_centre,
+          pillar_category: roleAssignForm.campaign_role === "pillar" ? roleAssignForm.pillar_category : "none",
+        });
+        if (error) {
+          toast.error(error || "Voter registered but role assignment failed.");
+        } else {
+          toast.success(`Candidate registered & appointed as ${roleAssignForm.campaign_role.replace(/_/g, ' ')}!`);
+        }
+      } else {
+        toast.success("Candidate registered successfully!");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Voter registered but role assignment failed.");
+    } finally {
+      setShowRoleModal(false);
+      setRoleModalPrefill(null);
+      setRoleModalVoter(null);
+      setRoleModalStep("lookup");
+      loadRootPage(0, "");
+      loadMembersPage(0, "", voterStatusFilter);
+      loadDigitalMembers("", "all", "all");
+    }
+  };
+
   const [selectedSocialIds, setSelectedSocialIds] = useState(new Set());
   const [isConvertingSocial, setIsConvertingSocial] = useState(false);
 
@@ -1314,15 +1437,23 @@ export default function Admin({ onLogout }) {
             </div>
          </div>
          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-           <button onClick={() => { setShowSecurityModal(true); }} className="bg-slate-800 border border-slate-700 text-white px-2.5 py-2 sm:px-4 sm:py-2.5 rounded-xl font-bold uppercase tracking-widest text-[9px] sm:text-[10px] items-center gap-1.5 hover:bg-slate-700 transition-colors shadow-sm flex shrink-0">
-              <ShieldCheck size={14} className="text-blue-400 shrink-0" /> 
-              <span className="hidden xs:inline">Security</span>
-           </button>
-           <button onClick={() => { setShowAddModal(true); setAddModalStep('lookup'); setAddModalPrefill(null); }} className="bg-slate-950 text-white px-2.5 py-2 sm:px-4 sm:py-2.5 rounded-xl font-bold uppercase tracking-widest text-[9px] sm:text-[10px] items-center gap-1.5 hover:bg-slate-800 transition-colors shadow-sm flex shrink-0">
-              <Plus size={14} className="text-dcp-green shrink-0" /> 
-              <span className="hidden xs:inline">Add Root</span>
-           </button>
-         </div>
+            <button onClick={() => { setShowSecurityModal(true); }} className="bg-slate-800 border border-slate-700 text-white px-2.5 py-2 sm:px-4 sm:py-2.5 rounded-xl font-bold uppercase tracking-widest text-[9px] sm:text-[10px] items-center gap-1.5 hover:bg-slate-700 transition-colors shadow-sm flex shrink-0">
+               <ShieldCheck size={14} className="text-blue-400 shrink-0" /> 
+               <span className="hidden xs:inline">Security</span>
+            </button>
+            <button onClick={() => { setShowAddModal(true); setAddModalStep('lookup'); setAddModalPrefill(null); }} className="bg-slate-950 text-white px-2.5 py-2 sm:px-4 sm:py-2.5 rounded-xl font-bold uppercase tracking-widest text-[9px] sm:text-[10px] items-center gap-1.5 hover:bg-slate-800 transition-colors shadow-sm flex shrink-0">
+               <Plus size={14} className="text-dcp-green shrink-0" /> 
+               <span className="hidden xs:inline">Add Root</span>
+            </button>
+            <button 
+              onClick={() => { setRoleModalMember(null); setRoleAssignForm(f => ({ ...f, member_id: '', campaign_role: 'ward_coordinator' })); setShowRoleModal(true); }}
+              className="bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white px-2.5 py-2 sm:px-4 sm:py-2.5 rounded-xl font-bold uppercase tracking-widest text-[9px] sm:text-[10px] items-center gap-1.5 transition-all shadow-md shadow-emerald-950/20 flex shrink-0 active:scale-95 border border-emerald-500/30"
+              title="Appoint or upgrade any person to Sub-County, Ward, or Station Coordinator"
+            >
+              <Crown size={14} className="text-amber-300 shrink-0" />
+              <span className="inline">Appoint Role</span>
+            </button>
+          </div>
         </header>
 
         <main className="flex-1 p-4 md:p-8 relative flex flex-col md:flex-row gap-6">
@@ -1746,10 +1877,22 @@ export default function Admin({ onLogout }) {
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                   <button onClick={() => { setShowAddModal(true); setAddModalStep('lookup'); setAddModalPrefill(null); }} className="bg-slate-900 text-white p-5 rounded-2xl flex items-center gap-4 hover:bg-slate-800 transition-colors shadow-sm text-left">
                     <div className="w-10 h-10 rounded-xl bg-dcp-green/20 flex items-center justify-center shrink-0"><Plus size={18} className="text-dcp-green" /></div>
                     <div><p className="font-black text-sm uppercase tracking-widest">Add Root</p><p className="text-[10px] text-slate-400 font-bold mt-0.5">Manual entry</p></div>
+                  </button>
+                  <button 
+                    onClick={() => { setRoleModalMember(null); setRoleAssignForm(f => ({ ...f, member_id: '', campaign_role: 'ward_coordinator' })); setShowRoleModal(true); }}
+                    className="bg-gradient-to-br from-slate-900 to-emerald-950 text-white p-5 rounded-2xl flex items-center gap-4 hover:border-emerald-500/50 border border-emerald-500/20 transition-all shadow-sm text-left group"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                      <Crown size={18} className="text-amber-400" />
+                    </div>
+                    <div>
+                      <p className="font-black text-sm uppercase tracking-widest flex items-center gap-1.5 text-emerald-400">Appoint Role</p>
+                      <p className="text-[10px] text-slate-300 font-bold mt-0.5">7-Tier Hierarchy</p>
+                    </div>
                   </button>
                   <button 
                     onClick={generateInviteToken} 
@@ -1850,13 +1993,8 @@ export default function Admin({ onLogout }) {
                 </div>
               </div>
             ) : activeTab === "tree" ? (
-              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6 px-3">
-                    Click an arrow to expand downline tree
-                </p>
-                {roots.map(root => (
-                  <TreeNode key={root.id} member={root} onSelectMember={setSelectedMember} />
-                ))}
+              <div className="animate-in fade-in duration-300">
+                <CampaignHierarchy currentUser={currentUser} />
               </div>
                         ) : activeTab === "social" ? (
               <div className="bg-white rounded-3xl border border-slate-200 shadow-sm flex flex-col animate-in fade-in duration-300">
@@ -2087,6 +2225,25 @@ export default function Admin({ onLogout }) {
                             >
                               <Star size={13} className="text-emerald-600 fill-emerald-600" />
                               Make Mobilizer
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRoleModalMember(m);
+                                setRoleAssignForm(f => ({
+                                  ...f,
+                                  member_id: m.id,
+                                  campaign_role: 'ward_coordinator',
+                                  assigned_ward: m.assigned_ward || m.official_ward || m.ward || '',
+                                  assigned_polling_centre: m.assigned_polling_centre || m.official_polling_station || m.polling_station || ''
+                                }));
+                                setShowRoleModal(true);
+                              }}
+                              className="px-3 py-2 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 border border-purple-300 text-xs font-black flex items-center gap-1.5 shadow-sm transition active:scale-95"
+                              title="Assign or upgrade to any Campaign Role"
+                            >
+                              <Crown size={13} className="text-purple-600" />
+                              Upgrade Role
                             </button>
                             {m.phone && (
                               <a
@@ -2386,24 +2543,52 @@ export default function Admin({ onLogout }) {
                                   </span>
                                 )}
                               </h4>
-                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 truncate">
-                                {member.ward}
-                                {activeTab === "all" && referrerName && (
-                                  <span className="text-slate-300"> · Under: <span className="text-slate-500">{referrerName}</span></span>
-                                )}
-                                {activeTab === "all" && !member.referred_by && (
-                                  isMemberDigital ? (
-                                    <span className="text-purple-600 font-black">
-                                      {' · '}
-                                      {member.source === 'x_twitter' ? '𝕏 Twitter Supporter' :
-                                       member.source === 'tiktok' ? '🎵 TikTok Supporter' :
-                                       member.source === 'whatsapp' ? '💬 WhatsApp Supporter' :
-                                       member.source === 'facebook' ? '📘 Facebook Supporter' :
-                                       '🌐 Online Supporter'}
-                                    </span>
-                                  ) : (
-                                    <span className="text-amber-500 font-black"> · Root Mobilizer</span>
-                                  )
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 truncate flex items-center gap-1">
+                                {member.campaign_role === 'sub_county_coordinator' ? (
+                                  <span className="text-blue-600 font-black">
+                                    {member.assigned_sub_county || 'Laikipia West'} · ★ Sub-County Coordinator
+                                  </span>
+                                ) : member.campaign_role === 'ward_coordinator' ? (
+                                  <span className="text-cyan-600 font-black">
+                                    {member.assigned_ward || member.ward} Ward · ★ Ward Coordinator
+                                  </span>
+                                ) : member.campaign_role === 'polling_centre_coordinator' ? (
+                                  <span className="text-purple-600 font-black">
+                                    {member.assigned_polling_centre || member.polling_station || member.ward} · ★ Polling Centre Coordinator
+                                  </span>
+                                ) : member.campaign_role === 'pillar' ? (
+                                  <span className="text-rose-600 font-black">
+                                    {member.assigned_polling_centre || member.ward} · ★ {member.pillar_category ? `${member.pillar_category.replace('_', ' ')} Pillar` : 'Campaign Pillar'}
+                                  </span>
+                                ) : member.campaign_role === 'county_manager' ? (
+                                  <span className="text-emerald-600 font-black">
+                                    County Operations · ★ County Manager
+                                  </span>
+                                ) : member.campaign_role === 'governor' ? (
+                                  <span className="text-amber-500 font-black">
+                                    County Wide · ★ Governor Aspirant
+                                  </span>
+                                ) : (
+                                  <>
+                                    <span>{member.ward || 'General'}</span>
+                                    {activeTab === "all" && referrerName && (
+                                      <span className="text-slate-300"> · Under: <span className="text-slate-500">{referrerName}</span></span>
+                                    )}
+                                    {!member.referred_by ? (
+                                      isMemberDigital ? (
+                                        <span className="text-purple-600 font-black">
+                                          {' · '}
+                                          {member.source === 'x_twitter' ? '𝕏 Twitter Supporter' :
+                                           member.source === 'tiktok' ? '🎵 TikTok Supporter' :
+                                           member.source === 'whatsapp' ? '💬 WhatsApp Supporter' :
+                                           member.source === 'facebook' ? '📘 Facebook Supporter' :
+                                           '🌐 Online Supporter'}
+                                        </span>
+                                      ) : (
+                                        <span className="text-amber-500 font-black"> · ⭐ Root Mobilizer</span>
+                                      )
+                                    ) : null}
+                                  </>
                                 )}
                               </p>
                             </div>
@@ -2435,13 +2620,21 @@ export default function Admin({ onLogout }) {
                               <div>
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${
-                                    selectedMember.source && selectedMember.source !== 'field_mobilizer'
+                                    selectedMember.campaign_role && selectedMember.campaign_role !== 'station_mobilizer'
+                                      ? (selectedMember.campaign_role === 'sub_county_coordinator' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
+                                         selectedMember.campaign_role === 'ward_coordinator' ? 'bg-cyan-100 text-cyan-800 border border-cyan-300' :
+                                         selectedMember.campaign_role === 'polling_centre_coordinator' ? 'bg-purple-100 text-purple-800 border border-purple-300' :
+                                         selectedMember.campaign_role === 'pillar' ? 'bg-rose-100 text-rose-800 border border-rose-300' :
+                                         'bg-emerald-100 text-emerald-800 border border-emerald-300')
+                                      : selectedMember.source && selectedMember.source !== 'field_mobilizer'
                                       ? 'bg-purple-100 text-purple-800 border border-purple-300'
                                       : selectedMember.referred_by 
                                       ? 'bg-slate-200 text-slate-700' 
                                       : 'bg-amber-100 text-amber-800 border border-amber-300'
                                   }`}>
-                                    {selectedMember.source && selectedMember.source !== 'field_mobilizer'
+                                    {selectedMember.campaign_role && selectedMember.campaign_role !== 'station_mobilizer'
+                                      ? `★ ${selectedMember.campaign_role.replace(/_/g, ' ')}`
+                                      : selectedMember.source && selectedMember.source !== 'field_mobilizer'
                                       ? (selectedMember.source === 'x_twitter' ? '𝕏 Twitter Supporter' :
                                          selectedMember.source === 'tiktok' ? '🎵 TikTok Supporter' :
                                          selectedMember.source === 'whatsapp' ? '💬 WhatsApp Supporter' :
@@ -2475,8 +2668,18 @@ export default function Admin({ onLogout }) {
                                 </div>
                                 <p className="text-xs text-slate-500 font-bold mt-1.5 flex items-center gap-1.5 flex-wrap">
                                   <MapPin size={13} className="text-slate-400 shrink-0" />
-                                  <span>{selectedMember.ward || 'No Ward'}</span>
-                                  {selectedMember.polling_station && <span>· Polling Station: <strong className="text-slate-700">{selectedMember.polling_station}</strong></span>}
+                                  {selectedMember.campaign_role === 'sub_county_coordinator' ? (
+                                    <span>🏛️ Sub-County Jurisdiction: <strong className="text-blue-700 font-black">{selectedMember.assigned_sub_county || 'Laikipia West'} (Entire Sub-County Command)</strong></span>
+                                  ) : selectedMember.campaign_role === 'ward_coordinator' ? (
+                                    <span>📍 Ward Jurisdiction: <strong className="text-cyan-700 font-black">{selectedMember.assigned_ward || selectedMember.ward} Ward</strong></span>
+                                  ) : selectedMember.campaign_role === 'polling_centre_coordinator' ? (
+                                    <span>🏫 Polling Centre Jurisdiction: <strong className="text-purple-700 font-black">{selectedMember.assigned_polling_centre || selectedMember.polling_station} ({selectedMember.assigned_ward || selectedMember.ward} Ward)</strong></span>
+                                  ) : (
+                                    <span>{selectedMember.ward || 'No Ward'}</span>
+                                  )}
+                                  {selectedMember.polling_station && selectedMember.campaign_role !== 'polling_centre_coordinator' && (
+                                    <span>· Home Station: <strong className="text-slate-700">{selectedMember.polling_station}</strong></span>
+                                  )}
                                 </p>
                               </div>
 
@@ -2950,6 +3153,271 @@ export default function Admin({ onLogout }) {
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── ROLE APPOINTMENT & UPGRADE MODAL (VOTER LOOKUP & ROLE ASSIGNMENT) ─── */}
+      <AnimatePresence>
+        {showRoleModal && (
+          <div 
+            className="fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-4 bg-black/90 backdrop-blur-md overflow-y-auto py-6 sm:py-8"
+            onClick={(e) => { if (e.target === e.currentTarget) setShowRoleModal(false); }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 20 }}
+              className="bg-slate-900 border border-white/10 rounded-3xl p-5 sm:p-7 max-w-xl w-full shadow-2xl relative text-white my-auto"
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500/20 to-emerald-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                    <Crown size={22} />
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-black text-emerald-400 tracking-widest block">
+                      Campaign Command Hierarchy
+                    </span>
+                    <h3 className="text-base sm:text-lg font-black text-white">
+                      Appoint & Assign Leader
+                    </h3>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowRoleModal(false)}
+                  className="p-2 rounded-xl bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Step 1: Choose Target Role First */}
+              <div className="mb-5 bg-slate-950 p-4 rounded-2xl border border-white/10 space-y-3">
+                <label className="block text-xs font-black uppercase tracking-wider text-emerald-400">
+                  1. Select Target Position / Role
+                </label>
+                <select
+                  value={roleAssignForm.campaign_role}
+                  onChange={(e) => setRoleAssignForm(f => ({ ...f, campaign_role: e.target.value }))}
+                  className="w-full bg-slate-900 border border-white/20 rounded-xl px-3.5 py-2.5 text-sm text-white font-bold focus:outline-none focus:border-emerald-500"
+                >
+                  <option value="sub_county_coordinator">⭐ Tier 3: Sub-County Coordinator (Laikipia East / West / North)</option>
+                  <option value="ward_coordinator">⭐ Tier 4: Ward Coordinator (Head of Registered Ward)</option>
+                  <option value="polling_centre_coordinator">⭐ Tier 5: Polling Centre Coordinator (Head of Polling Centre)</option>
+                  <option value="pillar">⭐ Tier 6: Campaign Pillar (3 / Centre)</option>
+                  <option value="station_mobilizer">⭐ Tier 7: Polling Station Mobilizer (Root Mobilizer — 25 Quota)</option>
+                </select>
+
+                {/* Pillar Category Picker if Pillar is selected */}
+                {roleAssignForm.campaign_role === "pillar" && (
+                  <div className="pt-2 grid grid-cols-2 gap-2">
+                    {[
+                      { id: 'youth', label: 'Youth Pillar' },
+                      { id: 'women', label: 'Women Pillar' },
+                      { id: 'elders_business', label: 'Elders & Business' },
+                      { id: 'special_interest', label: 'Special Interest' },
+                    ].map(cat => (
+                      <button
+                        type="button"
+                        key={cat.id}
+                        onClick={() => setRoleAssignForm(f => ({ ...f, pillar_category: cat.id }))}
+                        className={`p-2 rounded-xl text-xs font-black transition border text-left ${
+                          roleAssignForm.pillar_category === cat.id
+                            ? 'bg-rose-500 text-white border-rose-400 shadow-md'
+                            : 'bg-slate-900 text-slate-300 border-white/10 hover:border-rose-500/40'
+                        }`}
+                      >
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Mode Toggle: New Person (IEBC Lookup) vs Upgrade Existing Member */}
+              {!roleModalMember && (
+                <div className="flex rounded-2xl bg-slate-950 p-1 mb-5 border border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => { setRoleModalMode("new_voter"); setRoleModalStep("lookup"); }}
+                    className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition ${
+                      roleModalMode === "new_voter"
+                        ? "bg-emerald-600 text-white shadow-md"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    🔍 New Person (IEBC Lookup)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRoleModalMode("existing_member")}
+                    className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition ${
+                      roleModalMode === "existing_member"
+                        ? "bg-purple-600 text-white shadow-md"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    ⚡ Upgrade Existing Member
+                  </button>
+                </div>
+              )}
+
+              {/* Option A: Normal Entry via Voter Lookup & RegistrationForm */}
+              {roleModalMode === "new_voter" && !roleModalMember ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-2 text-xs font-bold text-slate-400">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>2. Candidate Registration ({roleModalStep === 'lookup' ? 'IEBC 2022 Official Voter Lookup' : 'Member Details'})</span>
+                  </div>
+
+                  {roleModalStep === 'lookup' ? (
+                    <div className="bg-white text-slate-900 rounded-3xl p-5 shadow-xl">
+                      <VoterLookup
+                        onSelect={(formData, voter) => {
+                          setRoleModalPrefill(formData);
+                          setRoleModalVoter(voter);
+                          setRoleModalStep('form');
+                        }}
+                        onSkip={() => {
+                          setRoleModalPrefill(null);
+                          setRoleModalVoter(null);
+                          setRoleModalStep('form');
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="bg-slate-950 rounded-3xl p-1 border border-white/10">
+                      <RegistrationForm
+                        referrerId={null}
+                        isAdmin={true}
+                        initialData={roleModalPrefill}
+                        selectedVoter={roleModalVoter}
+                        onSuccess={handleNewPersonRoleRegistered}
+                      />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Option B: Upgrade Existing Member */
+                <form onSubmit={handleExecuteRoleAssignment} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-black uppercase tracking-wider text-slate-300 mb-1.5">
+                      2. Select Candidate Member to Upgrade
+                    </label>
+
+                    {roleModalMember ? (
+                      <div className="p-3.5 rounded-2xl bg-slate-800/90 border border-emerald-500/30 flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-bold text-white text-sm truncate">{roleModalMember.full_name}</p>
+                          <p className="text-xs text-slate-400">
+                            ID: {roleModalMember.national_id || 'N/A'} • {roleModalMember.phone}
+                          </p>
+                          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                              Current: {roleModalMember.campaign_role?.replace('_', ' ') || roleModalMember.volunteer_role || 'Supporter'}
+                            </span>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                              📍 IEBC: {roleModalMember.official_ward || roleModalMember.ward || 'General'}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRoleModalMember(null);
+                            setRoleAssignForm(f => ({ ...f, member_id: '' }));
+                          }}
+                          className="text-xs font-bold text-rose-400 hover:text-rose-300 hover:underline shrink-0"
+                        >
+                          Change
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="relative">
+                          <Search size={16} className="absolute left-3.5 top-3 text-slate-400" />
+                          <input
+                            type="text"
+                            placeholder="Type Name, Phone or ID of existing member..."
+                            value={roleSearchQuery}
+                            onChange={(e) => setRoleSearchQuery(e.target.value)}
+                            className="w-full bg-slate-950 border border-white/10 rounded-2xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 placeholder:text-slate-500"
+                          />
+                        </div>
+
+                        {isSearchingRoleMembers && (
+                          <p className="text-xs text-slate-400 px-2">Searching member directory...</p>
+                        )}
+
+                        {roleSearchResults.length > 0 && (
+                          <div className="bg-slate-950 border border-white/10 rounded-2xl max-h-44 overflow-y-auto divide-y divide-white/5">
+                            {roleSearchResults.map((m) => (
+                              <div
+                                key={m.id}
+                                onClick={() => {
+                                  setRoleModalMember(m);
+                                  setRoleAssignForm(f => ({
+                                    ...f,
+                                    member_id: m.id,
+                                    assigned_ward: m.assigned_ward || m.official_ward || m.ward || '',
+                                    assigned_polling_centre: m.assigned_polling_centre || m.official_polling_station || m.polling_station || ''
+                                  }));
+                                  setRoleSearchResults([]);
+                                }}
+                                className="p-2.5 hover:bg-slate-800/80 cursor-pointer flex items-center justify-between text-xs transition"
+                              >
+                                <div>
+                                  <span className="font-bold text-white block">{m.full_name}</span>
+                                  <span className="text-slate-400 text-[11px]">
+                                    {m.phone} • {m.ward || 'General'}
+                                  </span>
+                                </div>
+                                <span className="text-[10px] font-black uppercase text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">
+                                  Select
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Auto-binding IEBC Notice */}
+                  <div className="p-3 bg-emerald-950/40 border border-emerald-500/30 rounded-2xl text-xs text-emerald-300 flex items-start gap-2.5">
+                    <CheckCircle2 size={16} className="text-emerald-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-bold text-white text-xs">Automatic IEBC Jurisdiction Lock</p>
+                      <p className="text-[11px] text-slate-300 mt-0.5">
+                        The appointed leader will automatically head the <strong>Ward</strong> & <strong>Polling Station</strong> where their verified IEBC registration is located.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => setShowRoleModal(false)}
+                      className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold transition"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmittingRole || (!roleModalMember && !roleAssignForm.member_id)}
+                      className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-emerald-600/30 transition active:scale-95 disabled:opacity-50"
+                    >
+                      <Crown size={14} className="fill-white" />
+                      {isSubmittingRole ? "Appointing..." : "Confirm Appointment"}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 

@@ -1,3 +1,4 @@
+import { cleanCentreName } from "../lib/constants";
 import { useState, useEffect, useCallback } from "react";
 import {
   Search,
@@ -6,12 +7,36 @@ import {
   Smartphone,
   Hash,
   CheckCircle,
+  ShieldCheck,
+  Award,
+  Users,
+  Star,
+  ChevronRight,
+  TrendingUp,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "../lib/api";
 import { useLanguage } from "../contexts/LanguageContext";
 
-export default function Members({ memberId, isAdmin = false }) {
+const CAMPAIGN_ROLE_LABELS = {
+  governor: "Governor Aspirant",
+  county_manager: "County Campaigns Manager",
+  sub_county_coordinator: "Sub-County Coordinator",
+  ward_coordinator: "Ward Coordinator",
+  polling_centre_coordinator: "Polling Centre Coordinator",
+  pillar: "Campaign Pillar",
+  station_mobilizer: "Station Mobilizer",
+  field_mobilizer: "Field Mobilizer",
+};
+
+const PILLAR_LABELS = {
+  youth: "Youth Pillar",
+  women: "Women Pillar",
+  elders_business: "Elders & Business Pillar",
+  special_interest: "Special Interest Pillar",
+};
+
+export default function Members({ memberId, profile, isAdmin = false }) {
   const { t } = useLanguage();
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,55 +47,68 @@ export default function Members({ memberId, isAdmin = false }) {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
 
+  const isCoordinator = ['polling_centre_coordinator', 'ward_coordinator', 'sub_county_coordinator', 'pillar', 'county_manager', 'governor'].includes(profile?.campaign_role);
+
   const fetchMembersPage = useCallback(async (pageIdx) => {
     if (pageIdx === 0) setLoading(true);
     else setLoadingMore(true);
 
     try {
-      const { data, error } = await api.getMembers({ 
-        referred_by: memberId,
-        page: pageIdx + 1
-      });
+      const params = {
+        page: pageIdx + 1,
+      };
+      if (query && query.trim()) {
+        params.search = query.trim();
+      }
+
+      // Only scope strictly to direct referral ID if regular mobilizer
+      if (!isCoordinator && !isAdmin && memberId) {
+        params.referred_by = memberId;
+      }
+
+      const { data, error } = await api.getMembers(params);
 
       if (error) {
         if (error.message?.includes('401') || error.message?.includes('403')) {
-          // If in a real app, we'd redirect or refresh
           console.warn("Unauthorized access to member list");
         }
         throw error;
       }
 
-      const list = data.results || [];
+      const list = data?.results || (Array.isArray(data) ? data : []);
       if (pageIdx === 0) setMembers(list);
       else setMembers(prev => [...prev, ...list]);
       
-      setHasMore(!!data.next);
+      setHasMore(!!data?.next);
       setPage(pageIdx);
     } catch (err) {
       console.error("Members fetch failed:", err);
-      toast.error("Unable to load network members right now.");
+      toast.error("Unable to load team members right now.");
       if (pageIdx === 0) setMembers([]);
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [memberId]);
+  }, [memberId, isCoordinator, isAdmin, query]);
 
   useEffect(() => {
-    if (memberId) {
-      fetchMembersPage(0);
-    }
-  }, [memberId, fetchMembersPage]);
+    fetchMembersPage(0);
+  }, [fetchMembersPage]);
 
-  const filtered = members.filter(
-    (member) =>
-      isAdmin
-        ? member.full_name?.toLowerCase().includes(query.toLowerCase()) ||
-          member.phone?.includes(query) ||
-          member.national_id?.includes(query) ||
-          member.referral_code?.toLowerCase().includes(query.toLowerCase())
-        : true, // Search disabled or focused on Ward/Stats for users
-  );
+  const filtered = members.filter((m) => {
+    if (!query) return true;
+    const q = query.toLowerCase();
+    return (
+      m.full_name?.toLowerCase().includes(q) ||
+      m.ward?.toLowerCase().includes(q) ||
+      m.polling_station?.toLowerCase().includes(q) ||
+      m.campaign_role?.toLowerCase().includes(q) ||
+      m.national_id?.includes(q)
+    );
+  });
+
+  // Calculate total recruitment metrics across subordinates
+  const totalTeamRecruits = members.reduce((sum, m) => sum + (m.recruits_count || 0), 0);
 
   // Group by ward for numerical display
   const wardStats = members.reduce((acc, m) => {
@@ -85,107 +123,47 @@ export default function Members({ memberId, isAdmin = false }) {
 
   if (selectedMember) {
     return (
-      <div className="relative overflow-hidden selection:bg-dcp-green/30">
-        {/* Background glow */}
-        <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_70%_30%,rgba(0,132,61,0.15)_0%,transparent_70%)] pointer-events-none" />
-
-        <div className="w-full space-y-12 relative z-10 pt-8">
+      <div className="relative overflow-hidden selection:bg-dcp-green/30 min-h-[80vh] p-4 md:p-8">
+        <div className="w-full max-w-4xl mx-auto space-y-8 relative z-10 pt-4">
           <button
             onClick={() => setSelectedMember(null)}
-            className="flex items-center gap-3 text-slate-400 hover:text-white transition-colors font-black uppercase tracking-widest text-[11px]"
+            className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors font-black uppercase tracking-widest text-xs"
           >
-            ← Back to Network
+            ← Back to Team Roster
           </button>
 
-          <header className="space-y-6">
-            <div className="w-24 h-24 bg-dcp-green rounded-[32px] flex items-center justify-center text-white shadow-2xl shadow-dcp-green/20">
-              <User size={40} strokeWidth={2.5} />
+          <header className="flex flex-col sm:flex-row items-start sm:items-center gap-6 bg-white border border-slate-200 rounded-[2rem] p-6 md:p-8 shadow-sm">
+            <div className="w-20 h-20 bg-slate-950 rounded-2xl flex items-center justify-center text-emerald-400 shadow-xl shrink-0">
+              <User size={36} strokeWidth={2.5} />
             </div>
-            <div>
-              <p className="text-dcp-green text-[10px] font-black uppercase tracking-[0.4em] mb-3">
-                Recruit Profile
-              </p>
-              <h1 className="text-5xl font-black uppercase italic tracking-tight leading-none mb-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
+                  ★ {selectedMember.campaign_role === 'pillar' ? (PILLAR_LABELS[selectedMember.pillar_category] || "Campaign Pillar") : (CAMPAIGN_ROLE_LABELS[selectedMember.campaign_role] || "Station Mobilizer")}
+                </span>
+                <span className="text-xs text-slate-400">• ID: {selectedMember.national_id || "Verified"}</span>
+              </div>
+              <h1 className="text-2xl md:text-4xl font-black uppercase tracking-tight text-slate-900 truncate">
                 {selectedMember.full_name}
               </h1>
-              <div className="flex items-center gap-3 px-4 py-2 bg-white/5 border border-white/10 rounded-xl w-fit">
-                <div className="w-2 h-2 rounded-full bg-dcp-green animate-pulse" />
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">
-                  Status: Verified Member
-                </span>
-              </div>
+              <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mt-1">
+                📍 {cleanCentreName(selectedMember.polling_station) || selectedMember.ward || "Laikipia County"}
+              </p>
             </div>
           </header>
 
-          <section className="grid gap-6">
-            <div className="bg-white/5 border border-white/10 p-8 rounded-[32px] space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
-                    <Hash size={12} /> National Identity
-                  </label>
-                  <p className="text-lg font-bold tracking-[0.2em]">
-                    {selectedMember.national_id}
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
-                    <Smartphone size={12} /> Contact Line
-                  </label>
-                  <p className="text-lg font-bold">{selectedMember.phone}</p>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
-                    <MapPin size={12} /> Ward Division
-                  </label>
-                  <p className="text-lg font-bold uppercase">
-                    {selectedMember.ward}
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
-                    <MapPin size={12} /> Polling Station
-                  </label>
-                  <p className="text-lg font-bold uppercase">
-                    {selectedMember.polling_station}
-                  </p>
-                </div>
-              </div>
-
-              <div className="pt-8 border-t border-white/10">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">
-                      Mobilization Code
-                    </p>
-                    <p className="text-xl font-black text-white tracking-widest uppercase">
-                      {selectedMember.referral_code || "NO CODE"}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">
-                      Joined
-                    </p>
-                    <p className="text-sm font-bold text-slate-300">
-                      {new Date(selectedMember.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-              </div>
+          <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{t("recruitment_yield")}</p>
+              <p className="text-3xl font-black text-slate-900">{selectedMember.recruits_count || 0} <span className="text-xs font-bold text-slate-400">{t("voters_recruited")}</span></p>
             </div>
-
-            <div className="bg-dcp-green/10 border border-dcp-green/20 p-6 rounded-2xl flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-dcp-green flex items-center justify-center text-white">
-                <CheckCircle size={20} />
-              </div>
-              <div>
-                <p className="text-xs font-black text-white uppercase tracking-widest">
-                  HQ Verification Active
-                </p>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                  This member is eligible for tiered rewards.
-                </p>
-              </div>
+            <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Assigned Ward</p>
+              <p className="text-xl font-black text-slate-900 truncate">{selectedMember.ward || "General"}</p>
+            </div>
+            <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Station HQ</p>
+              <p className="text-xl font-black text-slate-900 truncate">{cleanCentreName(selectedMember.polling_station) || "Main Centre"}</p>
             </div>
           </section>
         </div>
@@ -194,162 +172,186 @@ export default function Members({ memberId, isAdmin = false }) {
   }
 
   return (
-    <div className="selection:bg-dcp-green/30">
-      <div className="w-full space-y-8">
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.32em] text-slate-400 mb-2">
-                {t('mem_impact')}
-              </p>
-              <h1 className="text-3xl font-black text-slate-900 leading-tight italic">
-                {t('mem_stats_title')}
-              </h1>
-              <p className="text-sm text-slate-500 mt-2 max-w-2xl">
-                {isAdmin
-                  ? "Full intelligence directory of all registered members."
-                  : t('mem_stats_sub')}
-              </p>
+    <div className="w-full min-h-screen bg-slate-50 text-slate-900 p-4 md:p-8 space-y-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        
+        {/* ── Header Deck ────────────────────────────────────────── */}
+        <div className="bg-white border border-slate-200 rounded-[2.5rem] p-6 md:p-8 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-0.5 rounded-full">
+                {isCoordinator ? "Command & Team Oversight" : "My Downline Team"}
+              </span>
+              <span className="text-xs text-slate-400 font-bold">• Active Jurisdiction</span>
             </div>
-            {isAdmin && (
-              <div className="w-full w-full md:w-auto">
-                <div className="relative">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                  <input
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder={t('mem_search')}
-                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-3xl outline-none focus:border-dcp-green focus:ring-4 focus:ring-dcp-green/10 text-sm font-bold uppercase tracking-widest"
-                  />
-                </div>
-              </div>
-            )}
+            <h1 className="text-3xl md:text-4xl font-black text-slate-900 uppercase tracking-tight italic">
+              {isCoordinator
+                ? `${CAMPAIGN_ROLE_LABELS[profile?.campaign_role] || 'Coordinator'} Team Roster`
+                : "My Recruits Downline"}
+            </h1>
+            <p className="text-sm text-slate-500 mt-1 max-w-2xl font-medium">
+              {isCoordinator
+                ? `Monitoring Station Mobilizers, Pillars, and recruitment performance in ${cleanCentreName(profile?.polling_station) || profile?.ward || 'your jurisdiction'}.`
+                : "Numerical breakdown and roster of all supporters registered into your direct network."}
+            </p>
+          </div>
+
+          <div className="w-full md:w-80">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t("search_team_placeholder")}
+                className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-emerald-500 text-xs font-bold uppercase tracking-wider"
+              />
+            </div>
           </div>
         </div>
 
-        <section className="grid gap-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
-              <p className="text-[10px] uppercase tracking-[0.35em] text-slate-400 mb-3">
-                {t('mem_total_registered')}
+        {/* ── KPI Summary Cards ───────────────────────────────────── */}
+        <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] uppercase tracking-[0.3em] text-slate-400 font-black">
+                {isCoordinator ? "Subordinate Mobilizers" : "Total Direct Recruits"}
               </p>
-              <p className="text-4xl font-black text-slate-900">
-                {members.length}
-              </p>
+              <Users size={18} className="text-emerald-600" />
             </div>
-            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
-              <p className="text-[10px] uppercase tracking-[0.35em] text-slate-400 mb-3">
-                {t('mem_wards_covered')}
-              </p>
-              <p className="text-4xl font-black text-slate-900">
-                {sortedWards.length}
-              </p>
-            </div>
+            <p className="text-4xl font-black text-slate-900">{members.length}</p>
+            <p className="text-xs text-slate-500 font-medium mt-2">{t("active_personnel_under_command")}</p>
           </div>
 
-          {!isAdmin && (
-            <div className="grid gap-6">
-              <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
-                <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between">
-                  <h3 className="font-black text-slate-900 uppercase tracking-widest text-sm">
-                    {t('mem_geo_yield')}
-                  </h3>
-                  <MapPin size={18} className="text-slate-400" />
-                </div>
-                <div className="divide-y divide-slate-100">
-                  {sortedWards.map(({ ward, count }) => (
-                    <div
-                      key={ward}
-                      className="px-8 py-5 flex items-center justify-between hover:bg-slate-50 transition-colors"
-                    >
-                      <span className="font-black text-slate-700 uppercase text-xs tracking-widest">
-                        {ward}
-                      </span>
-                      <div className="flex items-center gap-4">
-                        <div className="w-32 bg-slate-100 h-1.5 rounded-full overflow-hidden hidden sm:block">
-                          <div
-                            className="bg-dcp-green h-full"
-                            style={{
-                              width: `${(count / members.length) * 100}%`,
-                            }}
-                          />
-                        </div>
-                        <span className="font-black text-slate-900 text-sm">
-                          {count}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                  {sortedWards.length === 0 && (
-                    <div className="p-12 text-center text-slate-400 font-bold uppercase tracking-widest text-xs">
-                      {t('mem_no_regs')}
-                    </div>
-                  )}
-                </div>
-              </div>
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] uppercase tracking-[0.3em] text-slate-400 font-black">
+                {isCoordinator ? "Total Voters Mobilized" : "Wards Covered"}
+              </p>
+              <TrendingUp size={18} className="text-amber-500" />
             </div>
-          )}
-          <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-            <div className="grid grid-cols-4 gap-0 text-[10px] uppercase tracking-[0.35em] text-slate-500 bg-slate-50 border-b border-slate-200 px-6 py-4 font-black w-full">
-              <div className="col-span-2">{t('mem_name')}</div>
-              <div>Contact</div>
-              <div className="hidden md:block text-right">{t('mem_location')}</div>
+            <p className="text-4xl font-black text-slate-900">
+              {isCoordinator ? totalTeamRecruits : sortedWards.length}
+            </p>
+            <p className="text-xs text-slate-500 font-medium mt-2">
+              {isCoordinator ? "Combined grassroots reach" : "Active ward locations"}
+            </p>
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm sm:col-span-2 md:col-span-1">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] uppercase tracking-[0.3em] text-slate-400 font-black">
+                Command Jurisdiction HQ
+              </p>
+              <MapPin size={18} className="text-blue-500" />
             </div>
-            <div className="divide-y divide-slate-200">
+            <p className="text-lg font-black text-slate-900 truncate">
+              {cleanCentreName(profile?.polling_station) || profile?.ward || "Laikipia County"}
+            </p>
+            <p className="text-xs text-slate-500 font-medium mt-2 truncate">
+              {profile?.ward ? `Ward: ${profile.ward}` : "Constituency Wide"}
+            </p>
+          </div>
+        </section>
+
+        {/* ── Subordinates & Mobilizer Roster Table ─────────────────── */}
+        <div className="bg-white border border-slate-200 rounded-[2rem] shadow-sm overflow-hidden">
+          <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <div>
+              <h3 className="font-black text-slate-900 uppercase tracking-widest text-xs">
+                {isCoordinator ? "Station Mobilizers & Subordinates Roster" : "Direct Recruits Directory"}
+              </h3>
+              <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                {isCoordinator ? "Showing mobilizers and their individual recruitment outputs" : "Voters registered through your referral link"}
+              </p>
+            </div>
+            <span className="text-xs font-black text-slate-400">{filtered.length} Listed</span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <div className="grid grid-cols-12 gap-4 text-[10px] uppercase tracking-[0.25em] text-slate-500 bg-slate-100/60 border-b border-slate-200 px-6 py-3.5 font-black min-w-[700px]">
+              <div className="col-span-5">{t("subordinate_member_role")}</div>
+              <div className="col-span-4">{t("jurisdiction_polling_station")}</div>
+              <div className="col-span-3 text-right">{t("recruitment_output")}</div>
+            </div>
+
+            <div className="divide-y divide-slate-100 min-w-[700px]">
               {loading ? (
-                <div className="p-12 text-center text-slate-500 flex flex-col items-center gap-4">
-                  <div className="w-8 h-8 border-2 border-dcp-green/20 border-t-dcp-green rounded-full animate-spin" />
-                  <p className="text-[10px] font-black uppercase tracking-widest">
-                    Decoding Network...
-                  </p>
+                <div className="p-12 text-center text-slate-500 flex flex-col items-center gap-3">
+                  <div className="w-8 h-8 border-2 border-emerald-500/20 border-t-emerald-600 rounded-full animate-spin" />
+                  <p className="text-xs font-black uppercase tracking-widest">{t("loading_roster")}</p>
                 </div>
               ) : filtered.length === 0 ? (
-                <div className="p-12 text-center text-slate-500 font-bold uppercase tracking-widest text-xs">
-                  No direct recruits yet.
+                <div className="p-12 text-center text-slate-400 font-bold uppercase tracking-widest text-xs">
+                  {isCoordinator
+                    ? `No mobilizers or subordinates enrolled yet under ${cleanCentreName(profile?.polling_station) || profile?.ward || 'your jurisdiction'}.`
+                    : "No direct recruits enrolled yet."}
                 </div>
               ) : (
                 filtered.map((member) => (
                   <div
                     key={member.id}
-                    className="grid grid-cols-4 gap-0 items-center px-6 py-6 hover:bg-slate-50 transition-colors cursor-pointer group w-full"
                     onClick={() => setSelectedMember(member)}
+                    className="grid grid-cols-12 gap-4 items-center px-6 py-4 hover:bg-slate-50 transition cursor-pointer group"
                   >
-                    <div className="col-span-2 space-y-1 min-w-0">
-                      <p className="font-black text-slate-900 truncate uppercase tracking-tight group-hover:text-dcp-green transition-colors">
+                    <div className="col-span-5 min-w-0">
+                      <p className="font-black text-slate-900 truncate uppercase text-sm group-hover:text-emerald-700 transition">
                         {member.full_name}
                       </p>
-                      <div className="text-[10px] uppercase tracking-[0.3em] text-slate-500 flex flex-wrap gap-2 font-bold">
-                        <span>Code: {member.referral_code || "N/A"}</span>
-                        <span className="text-slate-300">|</span>
-                        <span>ID: {member.national_id}</span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[9px] font-black uppercase tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 truncate">
+                          ★ {member.campaign_role === 'pillar' ? (PILLAR_LABELS[member.pillar_category] || "Campaign Pillar") : (CAMPAIGN_ROLE_LABELS[member.campaign_role] || "Station Mobilizer")}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-bold">
+                          ID: {member.national_id ? `••••${String(member.national_id).slice(-4)}` : 'Verified'}
+                        </span>
                       </div>
                     </div>
-                    <div className="text-slate-600 text-[12px] font-black tracking-tight">
-                      {member.phone}
+
+                    <div className="col-span-4 min-w-0">
+                      <p className="text-xs font-bold text-slate-800 truncate uppercase">
+                        {cleanCentreName(member.polling_station || member.official_polling_station) || "Polling Centre"}
+                      </p>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase truncate">
+                        {member.ward || "Ward Division"}
+                      </p>
                     </div>
-                    <div className="hidden md:block text-right text-slate-400 text-[11px] font-black uppercase tracking-widest group-hover:text-slate-900 transition-colors">
-                      {member.ward}
+
+                    <div className="col-span-3 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <span className="text-sm font-black text-slate-900">
+                          {member.recruits_count || 0}
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                          Recruits
+                        </span>
+                      </div>
+                      <div className="w-24 ml-auto bg-slate-100 h-1.5 rounded-full overflow-hidden mt-1">
+                        <div
+                          className="bg-emerald-500 h-full rounded-full"
+                          style={{
+                            width: `${Math.min(100, ((member.recruits_count || 0) / 10) * 100)}%`,
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
                 ))
               )}
             </div>
-            </div>
-
-            {hasMore && (
-              <div className="flex justify-center mt-8 pb-8">
-                <button
-                  onClick={() => fetchMembersPage(page + 1)}
-                  disabled={loadingMore}
-                  className="px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-[0.3em] border border-slate-200 bg-white hover:bg-slate-50 transition disabled:opacity-50"
-                >
-                  {loadingMore ? "Loading..." : "Load More Recruits"}
-                </button>
-              </div>
-            )}
           </div>
-        </section>
+
+          {hasMore && (
+            <div className="flex justify-center p-6 border-t border-slate-100">
+              <button
+                onClick={() => fetchMembersPage(page + 1)}
+                disabled={loadingMore}
+                className="px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest border border-slate-200 bg-white hover:bg-slate-50 transition disabled:opacity-50"
+              >
+                {loadingMore ? "Loading..." : "Load More Roster"}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

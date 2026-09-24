@@ -1,3 +1,4 @@
+import { cleanCentreName } from "../lib/constants";
 import { useLanguage } from '../contexts/LanguageContext';
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -191,7 +192,7 @@ export default function AgentDashboard({ memberId }) {
             <div>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('assigned_station')}</p>
               <p className="text-sm sm:text-base font-black text-white">
-                {agentData?.polling_station || member?.polling_station || "Nanyuki Primary School · Stream 1"}
+                {cleanCentreName(agentData?.polling_station || member?.polling_station) || "Nanyuki Primary School"}
               </p>
               <p className="text-[11px] font-bold text-emerald-400 uppercase">
                 {agentData?.ward || member?.ward || "Nanyuki Ward"} · {t('laikipia_county')}

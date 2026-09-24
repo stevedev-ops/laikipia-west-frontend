@@ -1,3 +1,4 @@
+import { cleanCentreName } from "../lib/constants";
 import { useLanguage } from '../contexts/LanguageContext';
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -197,7 +198,7 @@ export default function Incidents({ isAdmin = false }) {
                       </div>
                     )}
                     <div className="flex flex-wrap items-center gap-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                      <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" /> {i.ward}{i.polling_station ? ` · ${i.polling_station}` : ''}</span>
+                      <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" /> {i.ward}{i.polling_station ? ` · ${cleanCentreName(i.polling_station)}` : ''}</span>
                       <span className="text-slate-200">|</span>
                       <span>Reported by: {i.reporter_name}</span>
                       {i.latitude && i.longitude && (

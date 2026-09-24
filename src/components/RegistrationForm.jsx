@@ -152,23 +152,28 @@ export default function RegistrationForm({ referrerId, inviteToken, onSuccess, i
         }
       }
 
+      // ─── Offline Fallback: Check if device is offline or request failed due to network ───
+      const isNetworkError = !navigator.onLine || !isOnline || (res.error && (
+        res.error.toLowerCase().includes('network') ||
+        res.error.toLowerCase().includes('failed to fetch') ||
+        res.error.toLowerCase().includes('connection')
+      ));
+
+      if (isNetworkError || res.data?.offline) {
+        await enqueueOffline({ ...memberPayload, invite_token: inviteToken });
+        toast.success(
+          `📶 Saved Offline — ${fullName} will sync when internet returns!`,
+          { duration: 5000 }
+        );
+        onSuccess({ member: memberPayload, token: null, offline: true });
+        return;
+      }
+
       if (res.error) {
         throw new Error(res.error.error || res.error.message || "Registration failed.");
       }
 
       const resData = res.data;
-
-      // ─── Offline: save to queue, notify user ──────────────────────────────
-      if (resData?.offline) {
-        enqueueOffline({ ...memberPayload, invite_token: inviteToken });
-        toast.success(
-          `📶 Saved Offline — ${fullName} will sync when internet returns!`,
-          { duration: 5000 }
-        );
-        // Still call onSuccess with a synthetic member object so the UI advances
-        onSuccess({ member: memberPayload, token: null, offline: true });
-        return;
-      }
 
       toast.success("Registration Successful!");
       onSuccess(resData);
