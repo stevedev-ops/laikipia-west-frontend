@@ -1,5 +1,8 @@
 export const translations = {
   "en": {
+    "download_events": "Download Events",
+    "export_diary": "Export Schedule",
+
     "offline_sharing_tool": "Offline Sharing Tool",
     "my_referral_qr": "My Referral QR Code",
     "show_or_print_barazas": "Show or print at barazas — works without internet",
@@ -472,6 +475,9 @@ export const translations = {
     "wipe_device": "WIPE DEVICE"
   },
   "sw": {
+    "download_events": "Pakua Matukio",
+    "export_diary": "Pakua Ratiba",
+
     "offline_sharing_tool": "Zana ya Kusambaza Nje ya Mtandao",
     "my_referral_qr": "Msimbo Wangu wa QR wa Rufaa",
     "show_or_print_barazas": "Onyesha au chapisha kwenye mikutano ya baraza — inafanya kazi bila mtandao",
@@ -944,6 +950,9 @@ export const translations = {
     "wipe_device": "FUTA DATA ZOTE KWA HARAKA"
   },
   "ki": {
+    "download_events": "Kunia Matukio",
+    "export_diary": "Kunia Ratiba",
+
     "offline_sharing_tool": "Kĩhũũro gĩa Kũhunjia Itarĩ Rũrenda",
     "my_referral_qr": "Kĩnyũrũri Gĩakwa kĩa QR",
     "show_or_print_barazas": "Onania kana thĩnja kĩbaraza-inĩ — nĩĩrutaga wĩra gũtarĩ intaneti",
