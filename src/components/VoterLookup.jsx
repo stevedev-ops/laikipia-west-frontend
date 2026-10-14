@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { Search, User, MapPin, ShieldCheck, ArrowRight, Loader2, AlertCircle, Fingerprint } from "lucide-react";
 import { api } from "../lib/api";
+import { cleanCentreName } from "../lib/constants";
 
 function useDebounce(fn, delay) {
   const timer = useRef(null);
@@ -55,12 +56,15 @@ export default function VoterLookup({ onSelect, onSkip }) {
     const parts = cleaned.split(/\s+/).filter(Boolean);
     const [firstName = "", secondName = "", ...rest] = parts;
     const lastName = rest.join(" ");
+    const rawStation = voter.polling_station || "";
+    const cleanStation = cleanCentreName(rawStation) || rawStation;
     return {
       firstName: toTitleCase(firstName),
       secondName: toTitleCase(secondName),
       lastName: toTitleCase(lastName),
       ward: voter.ward || "",
-      pollingCenter: voter.polling_station || "",
+      pollingCenter: cleanStation,
+      rawPollingStation: rawStation,
       // nationalId is intentionally NOT pre-filled — the agent must type it
       // The raw voter object is passed separately as selectedVoter for comparison
     };

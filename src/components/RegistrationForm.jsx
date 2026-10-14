@@ -11,6 +11,7 @@ import { useLocationData } from "../contexts/LocationContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useSync } from "../contexts/SyncContext";
 import LanguageToggle from "./LanguageToggle";
+import { cleanCentreName } from "../lib/constants";
 
 
 
@@ -48,18 +49,24 @@ export default function RegistrationForm({ referrerId, inviteToken, onSuccess, i
   const consentChecked = watch("consent");
   const selectedWard = watch("ward");
 
+  const currentCenters = useMemo(() => {
+    const matched = wardsWithCenters.find((ward) => ward.name === selectedWard);
+    const list = matched ? [...matched.centers] : [];
+    // Ensure initial pollingCenter or selected voter station is included in list
+    const initialCenter = initialData?.pollingCenter || (selectedVoter?.polling_station ? cleanCentreName(selectedVoter.polling_station) : "");
+    if (initialCenter && !list.includes(initialCenter)) {
+      list.unshift(initialCenter);
+    }
+    return list;
+  }, [wardsWithCenters, selectedWard, initialData, selectedVoter]);
+
   // Pre-fill form fields when initialData changes (voter lookup selection)
   useEffect(() => {
     if (!initialData) return;
     Object.entries(initialData).forEach(([key, val]) => {
-      if (val) setValue(key, val, { shouldValidate: false });
+      if (val) setValue(key, val, { shouldValidate: true });
     });
-  }, [initialData, setValue]);
-
-  const currentCenters = useMemo(() => {
-    const matched = wardsWithCenters.find((ward) => ward.name === selectedWard);
-    return matched ? matched.centers : [];
-  }, [selectedWard]);
+  }, [initialData, setValue, currentCenters]);
 
 
 
@@ -92,25 +99,30 @@ export default function RegistrationForm({ referrerId, inviteToken, onSuccess, i
   const onSubmit = async (data) => {
     // ─── Validation against Voter Register ──────────────────────────────────
     if (selectedVoter) {
-      // 1. ID Validation
+      // 1. ID Validation: ONLY check first and last digit for masked IDs
       if (selectedVoter.id_number) {
         const enteredId = data.nationalId.trim();
         const maskedId = selectedVoter.id_number.trim();
         
         if (enteredId.length >= 2 && maskedId.length >= 2) {
-          if (enteredId[0] !== maskedId[0] || enteredId[enteredId.length - 1] !== maskedId[maskedId.length - 1]) {
-            toast.error("Re-check your information, you made an error.");
+          const firstMaskChar = maskedId[0];
+          const lastMaskChar = maskedId[maskedId.length - 1];
+
+          const firstMatches = firstMaskChar === '*' || enteredId[0] === firstMaskChar;
+          const lastMatches = lastMaskChar === '*' || enteredId[enteredId.length - 1] === lastMaskChar;
+
+          if (!firstMatches || !lastMatches) {
+            toast.error("Re-check your National ID: the first or last digit does not match the voter record.");
             return;
           }
         }
       }
 
-      // 2. Year of Birth Validation
+      // 2. Year of Birth Validation (only if record has dob)
       if (selectedVoter.dob) {
          const enteredYob = data.yob.trim();
-         // If the DOB string doesn't contain the entered year anywhere, it's wrong
          if (!selectedVoter.dob.includes(enteredYob)) {
-            toast.error("Re-check your information, you made an error.");
+            toast.error("Re-check your Year of Birth: it does not match the voter record.");
             return;
          }
       }
@@ -128,7 +140,8 @@ export default function RegistrationForm({ referrerId, inviteToken, onSuccess, i
         yob: parseInt(data.yob),
         ward: data.ward,
         polling_station: data.pollingCenter,
-        referred_by: referrerId || null
+        referred_by: referrerId || null,
+        voter_record_id: selectedVoter?.id || null
       };
 
       const res = await api.register(memberPayload, inviteToken);
@@ -351,13 +364,34 @@ export default function RegistrationForm({ referrerId, inviteToken, onSuccess, i
           </section>
 
           <section className="space-y-4 pt-2">
-            <h3 className="label-official border-b border-slate-100 pb-2 mb-4">{t('reg_location')}</h3>
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-4">
+              <h3 className="label-official">{t('reg_location')}</h3>
+              {selectedVoter && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  IEBC Verified
+                </span>
+              )}
+            </div>
+
+            {selectedVoter && (
+              <div className="p-3.5 bg-emerald-50/80 border border-emerald-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                <span className="text-slate-600 font-bold flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                  Verified Polling Station:
+                </span>
+                <span className="font-black text-emerald-950 text-sm">
+                  {cleanCentreName(selectedVoter.polling_station) || selectedVoter.polling_station || initialData?.pollingCenter}
+                </span>
+              </div>
+            )}
+
             <div className="grid md:grid-cols-2 gap-4">
               <div className="relative">
                 <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-dcp-green transition-colors" />
                 <select
                   {...register("ward")}
-                  className={`input-official pl-12 appearance-none ${selectedVoter ? 'opacity-60 pointer-events-none bg-slate-50' : 'bg-transparent'}`}
+                  className={`input-official pl-12 appearance-none font-bold text-slate-900 ${selectedVoter ? 'bg-slate-100/90 border-slate-300 pointer-events-none' : 'bg-transparent'}`}
                   defaultValue=""
                   tabIndex={selectedVoter ? -1 : 0}
                 >
@@ -377,8 +411,8 @@ export default function RegistrationForm({ referrerId, inviteToken, onSuccess, i
                 <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-dcp-green transition-colors" />
                 <select
                   {...register("pollingCenter")}
-                  className={`input-official pl-12 appearance-none ${selectedVoter ? 'opacity-60 pointer-events-none bg-slate-50' : 'bg-transparent'}`}
-                  disabled={!currentCenters.length}
+                  className={`input-official pl-12 appearance-none font-bold text-slate-900 ${selectedVoter ? 'bg-slate-100/90 border-slate-300 pointer-events-none' : 'bg-transparent'}`}
+                  disabled={!currentCenters.length && !selectedVoter}
                   defaultValue=""
                   tabIndex={selectedVoter ? -1 : 0}
                 >

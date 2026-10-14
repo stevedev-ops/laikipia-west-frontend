@@ -2,7 +2,8 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Share2, Copy, UserPlus, CheckCircle2, ArrowRight, ArrowLeft, WifiOff } from "lucide-react";
+import { Share2, Copy, UserPlus, CheckCircle2, ArrowRight, ArrowLeft, WifiOff, MapPin, Building2, ShieldCheck } from "lucide-react";
+import { cleanCentreName } from "../lib/constants";
 import { toast } from "sonner";
 import RegistrationForm from "../components/RegistrationForm";
 import VoterLookup from "../components/VoterLookup";
@@ -208,11 +209,28 @@ export default function Enrollment({ memberId }) {
               transition={{ duration: 0.25 }}
             >
               {selectedVoter && (
-                <div className="mb-6 flex items-center gap-3 p-4 bg-dcp-green/10 border border-dcp-green/20 rounded-2xl">
-                  <CheckCircle2 className="w-5 h-5 text-dcp-green shrink-0" />
-                  <div>
-                    <p className="text-xs font-black text-dcp-green uppercase tracking-widest">{t('enroll_voter_confirmed')}</p>
-                    <p className="text-sm font-bold text-slate-700 mt-0.5">{selectedVoter.full_name} · {selectedVoter.ward}</p>
+                <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest flex items-center gap-1.5">
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        {t('enroll_voter_confirmed')}
+                      </p>
+                      <p className="text-base font-black text-slate-900 mt-0.5">
+                        {selectedVoter.full_name}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2 mt-2">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-emerald-200 text-xs font-bold text-slate-800 shadow-xs">
+                          <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                          Ward: <span className="text-emerald-950 font-black">{selectedVoter.ward}</span>
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-emerald-200 text-xs font-bold text-slate-800 shadow-xs">
+                          <Building2 className="w-3.5 h-3.5 text-emerald-600" />
+                          Polling Station: <span className="text-emerald-950 font-black">{cleanCentreName(selectedVoter.polling_station) || selectedVoter.polling_station}</span>
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
