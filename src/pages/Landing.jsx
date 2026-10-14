@@ -19,6 +19,7 @@ export default function Landing({ onLogin, referrerId, inviteToken }) {
   const [authMode, setAuthMode] = useState((referrerId || inviteToken) ? 'register' : 'login');
   const [authStep, setAuthStep] = useState('lookup'); // 'lookup' | 'form'
   const [prefillData, setPrefillData] = useState(null);
+  const [selectedVoter, setSelectedVoter] = useState(null);
 
   useEffect(() => {
     if (!referrerId) {
@@ -124,12 +125,14 @@ export default function Landing({ onLogin, referrerId, inviteToken }) {
             authStep === 'lookup' ? (
               <div className="max-w-xl mx-auto w-full bg-white rounded-[2rem] p-6 shadow-xl border border-slate-100">
                 <VoterLookup 
-                  onSelect={(formData) => {
+                  onSelect={(formData, voter) => {
                     setPrefillData(formData);
+                    setSelectedVoter(voter);
                     setAuthStep('form');
                   }}
                   onSkip={() => {
                     setPrefillData(null);
+                    setSelectedVoter(null);
                     setAuthStep('form');
                   }}
                 />
@@ -139,6 +142,7 @@ export default function Landing({ onLogin, referrerId, inviteToken }) {
                 referrerId={referrerValid ? referrerId : null}
                 inviteToken={inviteValid ? inviteToken : null}
                 initialData={prefillData}
+                selectedVoter={selectedVoter}
                 onSuccess={(res) => { onLogin(res.member.id, res.token); navigate("/dashboard"); }}
               />
             )
