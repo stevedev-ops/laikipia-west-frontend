@@ -3452,7 +3452,7 @@ export default function Admin({ onLogout }) {
                     New Root Mobilizer
                   </p>
                   <p className="text-slate-400 text-[11px] font-bold mt-0.5">
-                    This member will have null referrer and a quota of 25.
+                    This member will have null referrer and can enroll unlimited recruits.
                   </p>
                 </div>
                 <button
