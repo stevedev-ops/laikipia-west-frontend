@@ -374,7 +374,8 @@ function App() {
 
   // Poll for emergency broadcasts
   useEffect(() => {
-    if (!memberId && !isAdmin) return; // Only poll if logged in
+    const token = localStorage.getItem("dcp_token");
+    if (!token || (!memberId && !isAdmin)) return; // Only poll if authenticated with an active token
     const checkBroadcast = async () => {
       try {
         const { data } = await api.getBroadcast();

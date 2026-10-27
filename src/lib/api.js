@@ -49,7 +49,22 @@ async function request(endpoint, { body, headers = {}, ...customConfig } = {}) {
     const data = await response.json();
 
     if (!response.ok) {
-      const errMsg = typeof data.error === 'string' ? data.error : (data.detail || (typeof Object.values(data)[0] === 'string' ? Object.values(data)[0] : 'Something went wrong'));
+      let errMsg = 'Something went wrong';
+      if (typeof data.error === 'string') {
+        errMsg = data.error;
+      } else if (typeof data.detail === 'string') {
+        errMsg = data.detail;
+      } else if (typeof data.message === 'string') {
+        errMsg = data.message;
+      } else if (data && typeof data === 'object') {
+        const firstKey = Object.keys(data)[0];
+        const firstVal = Object.values(data)[0];
+        if (Array.isArray(firstVal) && firstVal.length > 0) {
+          errMsg = `${firstKey}: ${firstVal[0]}`;
+        } else if (typeof firstVal === 'string') {
+          errMsg = `${firstKey}: ${firstVal}`;
+        }
+      }
       return { data: null, error: errMsg, errorData: data, status: response.status };
     }
 
