@@ -763,12 +763,12 @@ export default function Dashboard({ memberId, onLogout }) {
         <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <NetworkStatCard
             label="My Direct Enrolments"
-            sublabel={isRoot
-              ? `${tierRemaining} more to complete ${activeTier?.name ?? "all"} tier`
-              : `${remaining} slot${remaining !== 1 ? 's' : ''} remaining`
+            sublabel={activeTier
+              ? `${tierRemaining} more to complete ${activeTier.name}`
+              : "All 5 milestone tiers completed — unlimited enrolment active"
             }
-            value={isRoot ? tierFilledIn : referralCount}
-            max={isRoot ? 5 : quota}
+            value={referralCount}
+            suffix={referralCount === 1 ? " person" : " people"}
             icon="👤"
             delay={0.15}
           />
@@ -1021,34 +1021,30 @@ export default function Dashboard({ memberId, onLogout }) {
 
                   <div className="flex-1 text-center md:text-left">
                     <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-3">
-                      {isRoot ? "Current Tier Status" : "Mobilization Target"}
+                      Current Tier Status
                     </p>
                     <h3 className="text-3xl font-black text-slate-900 mb-4 tracking-tight uppercase italic">
-                      {isRoot ? (activeTier ? `${activeTier.name} Bunch` : "All Tiers Complete") : `Goal: ${quota} Members`}
+                      {activeTier ? `${activeTier.name} Bunch` : "All Tiers Complete (Unlimited)"}
                     </h3>
                     
                     <div className="flex flex-col md:flex-row gap-4 md:items-center">
                       <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
                         <motion.div 
                           initial={{ width: 0 }}
-                          animate={{ width: `${isRoot ? Math.round((tierFilledIn / 5) * 100) : pct}%` }}
+                          animate={{ width: `${activeTier ? Math.round((tierFilledIn / 5) * 100) : 100}%` }}
                           transition={{ duration: 1, delay: 0.5 }}
                           className="h-full bg-slate-900 rounded-full"
                         />
                       </div>
                       <span className="text-sm font-black text-slate-900 shrink-0 whitespace-nowrap">
-                        {isRoot ? Math.round((tierFilledIn / 5) * 100) : pct}% Complete
+                        {activeTier ? `${Math.round((tierFilledIn / 5) * 100)}% Complete` : "100% Unlocked"}
                       </span>
                     </div>
 
                     <p className="mt-4 text-sm text-slate-500 font-medium max-w-xl">
-                      {isRoot
-                        ? activeTier
-                          ? `You are currently filling your ${activeTier.name} bunch. You need ${tierRemaining} more to unlock the next level.`
-                          : "You have completed all your recruitment tiers. Exceptional leadership!"
-                        : remaining > 0
-                          ? `Continue your outreach in ${member?.ward}. You need ${remaining} more personal recruits to hit your quota.`
-                          : "Outstanding! You have reached your primary mobilization quota."}
+                      {activeTier
+                        ? `You are currently filling your ${activeTier.name} bunch (${tierFilledIn}/5). You need ${tierRemaining} more to unlock the next level.`
+                        : "Outstanding leadership! You have unlocked all 5 milestone tiers and can continue enrolling unlimited members."}
                     </p>
                   </div>
                 </motion.div>

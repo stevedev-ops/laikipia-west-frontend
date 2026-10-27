@@ -217,7 +217,8 @@ export default function SocialJoin() {
       }
 
       if (res.error) {
-        throw new Error(res.error.error || res.error.message || "Registration failed");
+        const errText = typeof res.error === 'string' ? res.error : (res.error.message || res.error.error || "Registration failed.");
+        throw new Error(errText);
       }
 
       setSuccessData({
